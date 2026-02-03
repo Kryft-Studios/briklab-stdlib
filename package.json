@@ -1,0 +1,51 @@
+{
+  "name": "@briklab/lib",
+  "author": {
+    "email": "ekaanshagarwal19554@gmail.com",
+    "name": "ObiloxYT",
+    "url": "https://youtube.com/@ObiloxYT"
+  },
+  "contributors": [
+    "ObiloxYT"
+  ],
+  "markdown": "github",
+  "type": "module",
+  "scripts": {
+	"build":"tsc"
+  },
+  "description": "@briklab/lib is the core library for all @briklab packages.",
+  "homepage": "https://github.com/EkaanshPC/briklab-stdlib",
+  "keywords": [
+    "helpers",
+    "typescript",
+    "types"
+  ],
+  "license": "Apache-2.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "packageManager": "pnpm@10.28.2",
+  "private": false,
+  "readme": "README.md",
+  "repository": {
+    "url": "https://github.com/EkaanshPC/briklab-stdlib"
+  },
+  "version": "1.0.0",
+  "devDependencies": {
+    "@types/node": "^25.1.0",
+    "typescript": "^5.9.3"
+  },
+  "exports": {
+	".": {
+		"import":"./dist/index.js",
+		"types":"./dist/index.d.ts"
+	},
+	"./cli-john": {
+		"import":"./dist/cli-john/index.js",
+		"types":"./dist/cli-john/index.d.ts"
+  },
+  "./jstc": {
+    "import":"./dist/jstc/index.js",
+    "types":"./dist/jstc/index.d.ts"
+  }
+  }
+}
