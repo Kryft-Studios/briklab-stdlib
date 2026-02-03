@@ -8,6 +8,9 @@
   "contributors": [
     "ObiloxYT"
   ],
+  "publishConfig": {
+    "access":"public"
+  },
   "markdown": "github",
   "type": "module",
   "scripts": {
