@@ -5,6 +5,9 @@
  * @module JSTC
  */
 
+/**
+ * # Primitive Type
+ */
 type PrimitiveType =
   | "string"
   | "number"
@@ -15,11 +18,27 @@ type PrimitiveType =
   | "symbol"
   | "bigint";
 
+/**
+ * JS constructor type
+ */
 type ConstructorType = Function;
 
+/**
+ * # JSType
+ * A Valid Javascript Type
+ */
 export type JSType = PrimitiveType | ConstructorType | string;
+
+/**
+ * # JSType
+ * A Valid JavaScript Type or a Valid JavaScript Type Array
+ */
 export type JSTypeOrArray = JSType | JSType[];
 
+/**
+ * # JSTypeChecker
+ * A JS Type Checker. Add type checking to your javascript files as well
+ */
 export class JSTypeChecker {
   #__CustomHandler: Record<string, (value: unknown) => boolean> = {
     Array: (value: unknown) => Array.isArray(value),
@@ -28,6 +47,7 @@ export class JSTypeChecker {
   };
 
   /**
+   * ### JSTypeChecker.for
    * check if specific arguments are of a specific type, class, etc.
    * @param {unknown[]} args
    */
@@ -39,13 +59,11 @@ export class JSTypeChecker {
         args = [args]
     }
     return {
+      /**
+       * ### JSTypeChecker.for().check
+       * Check the given arguments with corresponding given types
+       */
       check: (types: JSTypeOrArray[]): boolean => {
-        if(!Array.isArray(types)){
-          console.warn(`[JSTC.for().check] @briklab/lib/jstc: Invalid first argument!
-            Hint: The first argument must be a valid array!
-            Using [givenValue] as fallback`)
-            types = [types]
-        }
         if (args.length < types.length) return false;
         for (let i = 0; i < types.length; i++) {
           const value = args[i];
@@ -82,6 +100,10 @@ export class JSTypeChecker {
     };
   }
 
+  /**
+   * ### JSTypeChecker.addCustomHandler
+   * Create a custom handler for checking types.
+   */
   addCustomHandler(name: string, handler: (value: unknown) => boolean): void {
     if(!(typeof name === "string" && typeof handler === "function")){
       console.warn(`[JSTC.addCustomHandler] @briklab/lib/jstc: Invalid Arguments!
