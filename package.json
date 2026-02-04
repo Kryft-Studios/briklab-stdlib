@@ -14,7 +14,9 @@
   "markdown": "github",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && pnpm minify",
+    "minify": "node build.js",
+    "test:smoke": "pnpm run build && node ./test-dist.js",
     "prepublishOnly": "pnpm run build"
   },
   "description": "@briklab/lib is the core library for all @briklab packages.",
@@ -39,7 +41,7 @@
   "repository": {
     "url": "https://github.com/EkaanshPC/briklab-stdlib"
   },
-  "version": "1.0.9",
+  "version": "1.0.10",
   "devDependencies": {
     "@types/cssom": "^0.4.3",
     "@types/node": "^25.1.0",
@@ -59,15 +61,16 @@
       "types": "./dist/jstc/index.d.ts"
     },
     "./stylesheet": {
-      "import":"./dist/stylesheet/index.js",
-      "types":"./dist/stylesheet/index.d.ts"
+      "import": "./dist/stylesheet/index.js",
+      "types": "./dist/stylesheet/index.d.ts"
     },
     "./color": {
       "import": "./dist/color/index.js",
-      "types":"./dist/color/index.d.ts"
+      "types": "./dist/color/index.d.ts"
     }
   },
   "dependencies": {
-    "cssom": "^0.5.0"
+    "cssom": "^0.5.0",
+    "esbuild": "^0.27.2"
   }
 }

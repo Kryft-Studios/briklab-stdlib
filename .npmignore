@@ -2,3 +2,5 @@ node_modules
 src
 .npmrc
 test.ts
+.gitignore
+build.js

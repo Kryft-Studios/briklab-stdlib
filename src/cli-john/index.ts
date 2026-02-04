@@ -57,6 +57,7 @@
 //#region Defination of custom JSTC handler
 import JSTC from "../jstc/index.js";
 import InlineStyle, { StyleSheet } from "../stylesheet/index.js";
+import Color from "../color/index.js";
 JSTC.addCustomHandler("NodeJS Process", (p: any) => {
   return (
     p &&
@@ -428,14 +429,31 @@ class UtilitiesClass {
       console.log(message);
       return;
     }
-    const style = this.styleSheet.get(tag.styleName)?.text ?? "";
+    const inlineStyle = this.styleSheet.get(tag.styleName);
+    const style = inlineStyle?.text ?? "";
     const leftPad = " ".repeat(tag.paddingLeft);
     const rightPad = " ".repeat(tag.paddingRight);
 
-    if (tag.showErrorInTag) {
-      console.log(`[%c${leftPad}${tag.tag}${rightPad}%c]: ${message}`, style);
+    const isNodeTTY =
+      typeof process !== "undefined" &&
+      typeof process.stdout !== "undefined" &&
+      Boolean((process.stdout as any).isTTY);
+
+    if (isNodeTTY) {
+      const ansi = inlineStyle?.ansi ?? "";
+      const reset = Color.RESET;
+
+      if (tag.showErrorInTag) {
+        console.log("[" + ansi + `${leftPad}${tag.tag}${rightPad}` + reset + "]: " + message);
+      } else {
+        console.log(ansi + `[${leftPad}${tag.tag}${rightPad}]` + reset + `: ${message}`);
+      }
     } else {
-      console.log(`%c[${leftPad}${tag.tag}${rightPad}]%c: ${message}`, style);
+      if (tag.showErrorInTag) {
+        console.log(`[%c${leftPad}${tag.tag}${rightPad}%c]: ${message}`, style);
+      } else {
+        console.log(`%c[${leftPad}${tag.tag}${rightPad}]%c: ${message}`, style);
+      }
     }
   }
 

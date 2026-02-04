@@ -74,6 +74,64 @@ export default class Color {
     return this.a === 1 ? this.hex() : this.rgba();
   }
 
+  /**
+   * ANSI / Terminal color helpers
+   */
+  static RESET = "\x1b[0m";
+  static BOLD = "\x1b[1m";
+  static UNDERLINE = "\x1b[4m";
+
+  /** Return a 24-bit (truecolor) ANSI sequence for this color (foreground) */
+  ansiTruecolor(): string {
+    return `\x1b[38;2;${this.r};${this.g};${this.b}m`;
+  }
+
+  /** Return a 24-bit (truecolor) ANSI sequence for background */
+  ansiTruecolorBg(): string {
+    return `\x1b[48;2;${this.r};${this.g};${this.b}m`;
+  }
+
+  /** Convert RGB to the nearest 256-color palette index */
+  #rgbToAnsi256Index(r: number, g: number, b: number): number {
+    // grayscale range
+    if (r === g && g === b) {
+      if (r < 8) return 16;
+      if (r > 248) return 231;
+      return Math.round(((r - 8) / 247) * 24) + 232;
+    }
+    const to6 = (v: number) => Math.round((v / 255) * 5);
+    const ri = to6(r);
+    const gi = to6(g);
+    const bi = to6(b);
+    return 16 + 36 * ri + 6 * gi + bi;
+  }
+
+  /** Return a 256-color ANSI sequence for this color (foreground) */
+  ansi256(): string {
+    const idx = this.#rgbToAnsi256Index(this.r, this.g, this.b);
+    return `\x1b[38;5;${idx}m`;
+  }
+
+  /** Return a 256-color ANSI sequence for background */
+  ansi256Bg(): string {
+    const idx = this.#rgbToAnsi256Index(this.r, this.g, this.b);
+    return `\x1b[48;5;${idx}m`;
+  }
+
+  /** Wrap text with this color (truecolor by default). Options: {background?: boolean, use256?: boolean, bold?: boolean, underline?: boolean} */
+  wrapAnsi(text: string, opts: { background?: boolean; use256?: boolean; bold?: boolean; underline?: boolean } = {}) {
+    const use256 = Boolean(opts.use256);
+    const seq = opts.background
+      ? use256
+        ? this.ansi256Bg()
+        : this.ansiTruecolorBg()
+      : use256
+      ? this.ansi256()
+      : this.ansiTruecolor();
+    const mods = `${opts.bold ? Color.BOLD : ""}${opts.underline ? Color.UNDERLINE : ""}`;
+    return `${mods}${seq}${text}${Color.RESET}`;
+  }
+
   #clamp(value: number): number {
     return Math.max(0, Math.min(255, value));
   }
