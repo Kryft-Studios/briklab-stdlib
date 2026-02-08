@@ -58,6 +58,7 @@
 import JSTC from "../jstc/index.js";
 import InlineStyle, { StyleSheet } from "../stylesheet/index.js";
 import Color from "../color/index.js";
+import { warner } from "../warner/index.js";
 JSTC.addCustomHandler("NodeJS Process", (p: any) => {
   return (
     p &&
@@ -197,9 +198,10 @@ export class CLI {
         Hint: ${hint}`);
   }
   #createWarn(message: string, hint: string, otherMessage?: string) {
-    return console.warn(`[Class CLI] ${message}
+    warner.warn({message:`[Class CLI] ${message}
         Hint: ${hint}
-        ${otherMessage}`);
+        ${otherMessage}`});
+    return;
   }
 }
 //#endregion
@@ -240,9 +242,10 @@ export namespace CLI {
       return this;
     }
     #createWarn(message: string, hint: string, otherMessage?: string) {
-      return console.warn(`[Class CLI.Command] ${message}
+      warner.warn({message:`[Class CLI.Command] ${message}
         Hint: ${hint}
-        ${otherMessage}`);
+        ${otherMessage}`});
+      return;
     }
     #options: CLI.Command.Option[] = [];
     /**
@@ -368,9 +371,9 @@ class UtilitiesClass {
   /** Add a new tag */
   addTag(name: string, config: Partial<(typeof this.tags)["error"]> = {}) {
     if (!JSTC.for([name, config]).check(["string", "object"])) {
-      console.warn(`[UtilitiesClass.addTag] @briklab/lib/cli-john: Invalid Arguments!
+      warner.warn({message:`[UtilitiesClass.addTag] @briklab/lib/cli-john: Invalid Arguments!
         Hint: The first argument must be a string, and the second argument must be a object.
-        Using String(argument1) and {} as fallback.`);
+        Using String(argument1) and {} as fallback.`});
       name = String(name);
       config = {};
     }
@@ -384,9 +387,9 @@ class UtilitiesClass {
     };
 
     if (!JSTC.for([fullConfig]).check(["Utilities Tag Config"])) {
-      console.warn(`[UtilitiesClass.addTag] @briklab/lib/cli-john: Invalid tag config passed for "${name}"
-        Hint: The config must be in format {tag?: string, showErrorInTag?:boolean, paddingLeft?:number, paddingRight?:number, styleName?:string}`);
-      console.warn(fullConfig);
+      warner.warn({message:`[UtilitiesClass.addTag] @briklab/lib/cli-john: Invalid tag config passed for "${name}"
+        Hint: The config must be in format {tag?: string, showErrorInTag?:boolean, paddingLeft?:number, paddingRight?:number, styleName?:string}`});
+      warner.warn({message: JSON.stringify(fullConfig, null, 2)});
       return this;
     }
 
@@ -397,15 +400,15 @@ class UtilitiesClass {
   /** Set style for a tag */
   setTagStyle(tagName: string, style: InlineStyle) {
     if (typeof tagName !== "string" || !(style instanceof InlineStyle)) {
-      console.warn(`[UtilitiesClass.setTagStyle] @briklab/lib/cli-john: Invalid arguments!
+      warner.warn({message:`[UtilitiesClass.setTagStyle] @briklab/lib/cli-john: Invalid arguments!
         Hint: The first argument must be a string and the second argument must be a instance of InlineStyle
-        Using String(firstArgument) and new InlineStyle({}) as fallback`);
+        Using String(firstArgument) and new InlineStyle({}) as fallback`});
       tagName = String(tagName);
       style = new InlineStyle({});
     }
     if (!this.tags[tagName]) {
-      console.warn(`[UtilitiesClass.setTagStyle] @briklab/lib/cli-john: Tag "${tagName}" does not exist! 
-        Hint: Use a valid tag that you have defined or use "error"|"warn"|"info"`);
+      warner.warn({message:`[UtilitiesClass.setTagStyle] @briklab/lib/cli-john: Tag "${tagName}" does not exist! 
+        Hint: Use a valid tag that you have defined or use "error"|"warn"|"info"`});
       return this;
     }
     const styleName = `${tagName} Tag Color`;
@@ -416,9 +419,9 @@ class UtilitiesClass {
 
   log(tagName: string, ...messages: any[]) {
     if (!JSTC.for([tagName]).check(["string"])) {
-      console.warn(`[UtilitiesClass.log] @briklab/lib/cli-john: Invalid Arguments!
+      warner.warn({message:`[UtilitiesClass.log] @briklab/lib/cli-john: Invalid Arguments!
         Hint: The first argument must be a string
-        Using String(argument1) as fallback`);
+        Using String(argument1) as fallback`});
       tagName = String(tagName);
     }
 
@@ -426,8 +429,8 @@ class UtilitiesClass {
 
     const tag = this.tags[tagName];
     if (!tag) {
-      console.warn(`[UtilitiesClass.log] @briklab/lib/cli-john: Tag "${tagName}" does not exist! 
-        Hint: Use a valid tag that you have defined or use "error"|"warn"|"info"`);
+      warner.warn({message:`[UtilitiesClass.log] @briklab/lib/cli-john: Tag "${tagName}" does not exist! 
+        Hint: Use a valid tag that you have defined or use "error"|"warn"|"info"`});
       console.log(...messages);
       return;
     }

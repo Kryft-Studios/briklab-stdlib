@@ -4,6 +4,7 @@
  */
 
 import JSTC from "../jstc/index.js";
+import { warner } from "../warner/index.js";
 import { CSSStyleDeclaration as UUIII } from "cssom";
 import Color from "../color/index.js";
 /**
@@ -18,9 +19,9 @@ export default class InlineStyle {
    */
   constructor(styleObject: { [key: string]: string }) {
     if (!JSTC.for([styleObject]).check(["object|undefined"])) {
-      console.warn(`[InlineStyle class] @briklab/lib/stylesheet: Invalid first argument!
-            Hint: The first argument must be a valid style object or not be given!
-            Using {"imeMode":givenValue} as fallback`);
+      warner.warn({message:`[InlineStyle class] @briklab/lib/stylesheet: Invalid first argument!
+        Hint: The first argument must be a valid style object or not be given!
+        Using {"imeMode":${styleObject}} as fallback`});
       styleObject = { imeMode: `${styleObject}` };
     }
     this.#styleObject = styleObject;
@@ -36,15 +37,13 @@ export default class InlineStyle {
       const prop = c[i];
       let val = d[i];
       if (val == null) {
-        console.warn(`[InlineStyle.generate] @briklab/lib/stylesheet: Skipping property "${prop}" with ${String(
+        warner.warn({message:`[InlineStyle.generate] @briklab/lib/stylesheet: Skipping property "${prop}" with ${String(
           val,
-        )} value. Hint: avoid null/undefined style values.`);
+        )} value. Hint: avoid null/undefined style values.`});
         continue;
       }
       if (typeof val !== "string") {
-        console.warn(
-          `[InlineStyle.generate] @briklab/lib/stylesheet: Non-string style value for "${prop}" (type=${typeof val}). Coercing to string.`,
-        );
+        warner.warn({message:`[InlineStyle.generate] @briklab/lib/stylesheet: Non-string style value for "${prop}" (type=${typeof val}). Coercing to string.`});
         val = String(val);
       }
       a.setProperty(prop, val);
@@ -68,11 +67,9 @@ export default class InlineStyle {
         const c = new Color(String(colorVal));
         parts.push(c.ansiTruecolor());
       } catch (e) {
-        console.warn(
-          `[InlineStyle.ansi] @briklab/lib/stylesheet: Invalid color value "${String(
+        warner.warn({message:`[InlineStyle.ansi] @briklab/lib/stylesheet: Invalid color value "${String(
             colorVal,
-          )}" — ignoring. Hint: use a valid hex, rgb(), hsl() or named color.`,
-        );
+          )}" — ignoring. Hint: use a valid hex, rgb(), hsl() or named color.`});
       }
     }
 
@@ -82,11 +79,9 @@ export default class InlineStyle {
         const c = new Color(String(bgVal));
         parts.push(c.ansiTruecolorBg());
       } catch (e) {
-        console.warn(
-          `[InlineStyle.ansi] @briklab/lib/stylesheet: Invalid background-color value "${String(
+        warner.warn({message:`[InlineStyle.ansi] @briklab/lib/stylesheet: Invalid background-color value "${String(
             bgVal,
-          )}" — ignoring. Hint: use a valid hex, rgb(), hsl() or named color.`,
-        );
+          )}" — ignoring. Hint: use a valid hex, rgb(), hsl() or named color.`});
       }
     }
 
@@ -95,11 +90,9 @@ export default class InlineStyle {
 
   addStyleWithObject(styleObject: object) {
     if (!JSTC.for([styleObject]).check(["object"])) {
-      console.warn(
-        `[InlineStyle.addStyleWithObject] @briklab/lib/stylesheet: Invalid first argument!\n` +
+      warner.warn({message:`[InlineStyle.addStyleWithObject] @briklab/lib/stylesheet: Invalid first argument!\n` +
           `Hint: expected a plain object with CSS properties. Received: ${String(styleObject)}\n` +
-          `Returned with no operations.`,
-      );
+          `Returned with no operations.`});
       return this;
     }
     this.#styleObject = { ...this.#styleObject, ...styleObject };
@@ -108,9 +101,9 @@ export default class InlineStyle {
   }
   addStyleWithInlineCSS(inlineCSS: string) {
     if (!JSTC.for([inlineCSS]).check(["string"])) {
-      console.warn(`[InlineStyle.addStyleWithInlineCSS] @briklab/lib/stylesheet: Invalid first argument!
+      warner.warn({message:`[InlineStyle.addStyleWithInlineCSS] @briklab/lib/stylesheet: Invalid first argument!
         Hint: The first argument must be a valid inline css string!
-        Returned with no operations.`);
+        Returned with no operations.`});
       return this;
     }
     let s = new UUIII();
@@ -135,18 +128,14 @@ export default class InlineStyle {
       if (!raw) continue;
       const kv = raw.split(":");
       if (kv.length < 2) {
-        console.warn(
-          `[InlineStyle.#convertKeysToValidCSS] @briklab/lib/stylesheet: Skipping malformed rule: "${raw}". ` +
-            `Hint: expected "property: value" pairs separated by ";"`,
-        );
+        warner.warn({message:`[InlineStyle.#convertKeysToValidCSS] @briklab/lib/stylesheet: Skipping malformed rule: "${raw}". ` +
+            `Hint: expected "property: value" pairs separated by ";"`});
         continue;
       }
       const k = kv[0].trim();
       const v = kv.slice(1).join(":").trim();
       if (!k || !v) {
-        console.warn(
-          `[InlineStyle.#convertKeysToValidCSS] @briklab/lib/stylesheet: Skipping empty property or value in rule: "${raw}".`,
-        );
+        warner.warn({message:`[InlineStyle.#convertKeysToValidCSS] @briklab/lib/stylesheet: Skipping empty property or value in rule: "${raw}".`});
         continue;
       }
       out += `${this.#convertFieldToHyphenCase(k)}:${v};`;
@@ -155,10 +144,8 @@ export default class InlineStyle {
   }
   removeStyle(styles: string[] | string) {
     if (!JSTC.for([styles]).check(["string[]|string"])) {
-      console.warn(
-        `[InlineStyle.removeStyle] @briklab/lib/stylesheet: Invalid first argument!\n` +
-          `Hint: expected a string or array of strings. Returned with no operations. Received: ${String(styles)}`,
-      );
+      warner.warn({message:`[InlineStyle.removeStyle] @briklab/lib/stylesheet: Invalid first argument!\n` +
+          `Hint: expected a string or array of strings. Returned with no operations. Received: ${String(styles)}`});
       return this;
     }
     if (typeof styles === "string") {
@@ -167,11 +154,9 @@ export default class InlineStyle {
     for (let i: number = 0; i < styles.length; i++) {
       const prop = styles[i];
       if (typeof prop !== "string") {
-        console.warn(
-          `[InlineStyle.removeStyle] @briklab/lib/stylesheet: Ignoring non-string style name at index ${i}: ${String(
+        warner.warn({message:`[InlineStyle.removeStyle] @briklab/lib/stylesheet: Ignoring non-string style name at index ${i}: ${String(
             prop,
-          )}`,
-        );
+          )}`});
         continue;
       }
       delete this.#styleObject[prop];
@@ -180,16 +165,12 @@ export default class InlineStyle {
   }
   applyTo(element: HTMLElement) {
     if (!JSTC.for([element]).check(["object"])) {
-      console.warn(
-        `[InlineStyle.applyTo] @briklab/lib/stylesheet: Invalid first argument!\n` +
-          `Hint: expected an HTMLElement. No operation was performed.`,
-      );
+      warner.warn({message:`[InlineStyle.applyTo] @briklab/lib/stylesheet: Invalid first argument!\n` +
+          `Hint: expected an HTMLElement. No operation was performed.`});
       return this;
     }
     if (!element || typeof (element as any).style !== "object") {
-      console.warn(
-        `[InlineStyle.applyTo] @briklab/lib/stylesheet: Given object does not look like an HTMLElement (missing .style). No operation was performed.`,
-      );
+      warner.warn({message:`[InlineStyle.applyTo] @briklab/lib/stylesheet: Given object does not look like an HTMLElement (missing .style). No operation was performed.`});
       return this;
     }
     element.style.cssText = this.generate();
@@ -212,19 +193,15 @@ export class StyleSheet {
    */
   set(name: string, style: InlineStyle) {
     if (!JSTC.for([name, style]).check(["string", "object"])) {
-      console.warn(
-        `[StyleSheet.set] @briklab/lib/stylesheet: Invalid arguments!\n` +
+      warner.warn({message:`[StyleSheet.set] @briklab/lib/stylesheet: Invalid arguments!\n` +
           `Hint: call .set("ruleName", new InlineStyle({...})). Received name=${String(name)}, style=${String(
             style,
-          )}. Returned with no operations.`,
-      );
+          )}. Returned with no operations.`});
       return this;
     }
     if (!(style instanceof InlineStyle)) {
-      console.warn(
-        `[StyleSheet.set] @briklab/lib/stylesheet: Provided style is not an InlineStyle instance!\n` +
-          `Hint: create the style with new InlineStyle({...}). Received: ${String(style)}. Returned with no operations.`,
-      );
+      warner.warn({message:`[StyleSheet.set] @briklab/lib/stylesheet: Provided style is not an InlineStyle instance!\n` +
+          `Hint: create the style with new InlineStyle({...}). Received: ${String(style)}. Returned with no operations.`});
       return this;
     }
 
@@ -237,10 +214,8 @@ export class StyleSheet {
    */
   get(name: string) {
     if (!JSTC.for([name]).check(["string"])) {
-      console.warn(
-        `[StyleSheet.get] @briklab/lib/stylesheet: Invalid argument!\n` +
-          `Hint: name must be a string. Received: ${String(name)}. Returned undefined.`,
-      );
+      warner.warn({message:`[StyleSheet.get] @briklab/lib/stylesheet: Invalid argument!\n` +
+          `Hint: name must be a string. Received: ${String(name)}. Returned undefined.`});
       return undefined;
     }
     return this.#styles[name];
@@ -251,10 +226,8 @@ export class StyleSheet {
    */
   remove(name: string) {
     if (!JSTC.for([name]).check(["string"])) {
-      console.warn(
-        `[StyleSheet.remove] @briklab/lib/stylesheet: Invalid argument!\n` +
-          `Hint: name must be a string. Received: ${String(name)}. No-op.`,
-      );
+      warner.warn({message:`[StyleSheet.remove] @briklab/lib/stylesheet: Invalid argument!\n` +
+          `Hint: name must be a string. Received: ${String(name)}. No-op.`});
       return this;
     }
     delete this.#styles[name];
