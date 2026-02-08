@@ -8,8 +8,8 @@ const IS_BROWSER = typeof window !== "undefined" && typeof window?.console !== "
 const IS_NODE = typeof process !== "undefined" && !!process.stdout;
 
 const NODE_STYLES = {
-    label: "\x1b[35m", // magenta
-    tag: "\x1b[36m", // cyan
+    label: "\x1b[35m",  
+    tag: "\x1b[36m",
     msg: "\x1b[0m",
     hint: "\x1b[2m",
     reset: "\x1b[0m",
@@ -102,7 +102,6 @@ export default class Warner {
     #options: WarnerOptions = {};
 
     constructor(options: WarnerOptions = {}) {
-        // normalize options
         options.level = options.level ?? "summary";
         options.maxWarnings = Number(options.maxWarnings ?? 20);
         options.onWarn = options.onWarn ?? (() => {});
@@ -133,60 +132,60 @@ export default class Warner {
 
     warn(warning: Warning) {
         if (!JSTC.for([warning]).check(["Warning"])) return;
-        // collect
         if (this.#options.maxWarnings && this.#warnings.length < this.#options.maxWarnings) {
             this.#warnings.push(warning);
         }
         try {
             this.#options.onWarn?.(warning);
         } catch (e) {
-            // swallow
         }
 
-        // instantly show if requested
         if (warning.instantlyWarn) {
             this.#print(warning);
             return;
         }
 
-        // depending on level, print
         if (this.#options.level === "full") this.#print(warning);
         if (this.#options.level === "summary") {
-            // no-op here; flush will print summary
         }
     }
 
-    #formatForBrowser(w: Warning) {
-        const lines: any[] = [];
-        const label = this.#options.packageName ? `${this.#options.packageName}: ` : "";
-        const tagOrSource = w.tag ? `[${w.tag}] ` : w.source ? `[${w.source}] ` : "";
-        const header = `${tagOrSource}${label}${w.message}`;
-        const cssHeader = "background:#222;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700;";
-        lines.push(header, cssHeader);
-        if (w.hint) {
-            lines.push(`\nHint: ${w.hint}`, "color:#888;font-style:italic;");
-        }
-        if (w.documentation) {
-            lines.push(`\nDocumentation: ${w.documentation}`, "color:#0af;font-weight:600;");
-        }
-        return lines;
-    }
+  /**
+   * Finalize all warnings and log summary if needed
+   */
+  finalize() {
+    this.flush();
+  }
 
-    #formatForNode(w: Warning) {
-        const parts: string[] = [];
-        const t = w.tag ? `${NODE_STYLES.tag}[${w.tag}]${NODE_STYLES.reset} ` : w.source ? `${NODE_STYLES.tag}[${w.source}]${NODE_STYLES.reset} ` : "";
-        const pkg = this.#options.packageName ? `${NODE_STYLES.label}${this.#options.packageName}${NODE_STYLES.reset}: ` : "";
-        parts.push(`${t}${pkg}${NODE_STYLES.bold}${w.message}${NODE_STYLES.reset}`);
-        if (w.hint) parts.push(`${NODE_STYLES.hint}Hint: ${w.hint}${NODE_STYLES.reset}`);
-        if (w.documentation) parts.push(`Documentation: ${w.documentation}`);
-        return parts.join("\n");
+  #formatForBrowser(w: Warning) {
+    const lines: any[] = [];
+    const label = this.#options.packageName ? `${this.#options.packageName}: ` : "";
+    const tagOrSource = w.tag ? `[${w.tag}] ` : w.source ? `[${w.source}] ` : "";
+    const header = `${tagOrSource}${label}${w.message}`;
+    const cssHeader = "background:#222;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700;";
+    lines.push(header, cssHeader);
+    if (w.hint) {
+      lines.push(`\nHint: ${w.hint}`, "color:#888;font-style:italic;");
     }
+    if (w.documentation) {
+      lines.push(`\nDocumentation: ${w.documentation}`, "color:#0af;font-weight:600;");
+    }
+    return lines;
+  }
 
-    #print(w: Warning) {
+  #formatForNode(w: Warning) {
+    const parts: string[] = [];
+    const t = w.tag ? `${NODE_STYLES.tag}[${w.tag}]${NODE_STYLES.reset} ` : w.source ? `${NODE_STYLES.tag}[${w.source}]${NODE_STYLES.reset} ` : "";
+    const pkg = this.#options.packageName ? `${NODE_STYLES.label}${this.#options.packageName}${NODE_STYLES.reset}: ` : "";
+    parts.push(`${t}${pkg}${NODE_STYLES.bold}${w.message}${NODE_STYLES.reset}`);
+    if (w.hint) parts.push(`${NODE_STYLES.hint}Hint: ${w.hint}${NODE_STYLES.reset}`);
+    if (w.documentation) parts.push(`Documentation: ${w.documentation}`);
+    return parts.join("\n");
+  }
+
+  #print(w: Warning) {
         if (IS_BROWSER) {
             const args = this.#formatForBrowser(w);
-            // args pattern: message, css, message2, css2, ... — we need to craft a single console.warn call
-            // we'll interleave: console.warn('%cmsg%c
             let fmt = "%c" + args[0];
             const cssArgs: string[] = [args[1]];
             let extraFmt = "";
@@ -204,7 +203,6 @@ export default class Warner {
             return;
         }
 
-        // fallback
         console.warn(`${this.#options.packageName ? this.#options.packageName + ': ' : ''}${w.message}`);
     }
 
@@ -227,6 +225,5 @@ export default class Warner {
     }
 }
 
-// export a default shared instance for convenience
 export const warner = new Warner({ level: "summary" });
 // TODO: complete this warner bro

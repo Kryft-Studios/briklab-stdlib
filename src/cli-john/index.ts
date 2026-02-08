@@ -147,6 +147,7 @@ export class CLI {
     for (let i = 0; i < this.#onCmdFunctions.length; i++) {
       this.#onCmdFunctions[i]({ options, commandArgs, command });
     }
+    warner.flush();
   }
   #figureOutCommand() {
     // for eg. we have nodepath filepath cli build
