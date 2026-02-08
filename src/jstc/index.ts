@@ -5,8 +5,6 @@
  * @module JSTC
  */
 
-import { warner } from "../warner/index.js";
-
 /**
  * # Primitive Type
  */
@@ -55,9 +53,9 @@ export class JSTypeChecker {
    */
   for(args: unknown[]) {
     if(!Array.isArray(args)){
-      warner.warn({message:`[JSTC.for] @briklab/lib/jstc: Invalid first argument!
+      console.warn(`[JSTC.for] @briklab/lib/jstc: Invalid first argument!
         Hint: The first argument must be a array.
-        Using [givenValue] as fallback`} )
+        Using [givenValue] as fallback`)
         args = [args]
     }
     return {
@@ -108,9 +106,9 @@ export class JSTypeChecker {
    */
   addCustomHandler(name: string, handler: (value: unknown) => boolean): void {
     if(!(typeof name === "string" && typeof handler === "function")){
-      warner.warn({message:`[JSTC.addCustomHandler] @briklab/lib/jstc: Invalid Arguments!
+      console.warn(`[JSTC.addCustomHandler] @briklab/lib/jstc: Invalid Arguments!
         Hint: The first argument must be a string, and the second argument must be a function
-        Using String(argument1) and ()=>false as fallbacks`} )
+        Using String(argument1) and ()=>false as fallbacks`)
         name = String(name)
         handler = () => false
     }
