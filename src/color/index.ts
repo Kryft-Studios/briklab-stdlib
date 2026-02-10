@@ -7,6 +7,21 @@ import type { ProtectionLevel } from "../jstc/index.js";
 
 const colorWarner = createWarner("@briklab/lib/color");
 
+function formatColorMessage(
+  scope: string,
+  message: string,
+  hint?: string,
+  otherMessage?: string,
+): string {
+  return [
+    `[${scope}] @briklab/lib/color: ${message}`,
+    hint ? `Hint: ${hint}` : undefined,
+    otherMessage,
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join("\n");
+}
+
 type ColorInput =
   | string
   | { r: number; g: number; b: number; a?: number }
@@ -56,15 +71,28 @@ export default class Color {
   #handleInvalidInput(): void {
     if (this.protectionLevel === "hardened") {
       throw new Error(
-        `[Color.constructor] Invalid color input provided. Expected string, RGB, or HSL object.`
+        formatColorMessage(
+          "Color.constructor",
+          "Invalid color input.",
+          "Expected a string, an RGB object, or an HSL object.",
+        )
       );
     } else if (this.protectionLevel === "sandbox") {
       colorWarner.warn({
-        message: `[Color.constructor] Invalid color input provided.`,
+        message: formatColorMessage(
+          "Color.constructor",
+          "Invalid color input.",
+          "Expected a string, an RGB object, or an HSL object.",
+        ),
       });
     } else if (this.protectionLevel === "boundary") {
       colorWarner.warn({
-        message: `[Color.constructor] Invalid color input! Using black as fallback.`,
+        message: formatColorMessage(
+          "Color.constructor",
+          "Invalid color input.",
+          "Expected a string, an RGB object, or an HSL object.",
+          "Using black as fallback.",
+        ),
       });
     }
     // "none" - silent fallback
@@ -180,9 +208,14 @@ export default class Color {
         this.g = parseInt(hex.slice(2, 4), 16);
         this.b = parseInt(hex.slice(4, 6), 16);
       } else {
-        colorWarner.warn({message:`[Color class] @briklab/lib/color: Invalid hex! 
-        Hint: You must pass a valid hex color string!
-        Using black as fallback.`});
+        colorWarner.warn({
+          message: formatColorMessage(
+            "Color.parseString",
+            "Invalid hex color string.",
+            "Pass a valid 3-digit or 6-digit hex string.",
+            "Using black as fallback.",
+          ),
+        });
       }
     } else if (str.startsWith("rgb")) {
       const vals = str.match(/[\d.]+/g)?.map(Number);
@@ -200,9 +233,14 @@ export default class Color {
         this.a = vals[3] ?? 1;
       }
     } else {
-      colorWarner.warn({message:`[Color class] @briklab/lib/color: Unknown color string "${str}"! 
-        Hint: The argument must be a valid color string!
-        Using black as fallback.`});
+      colorWarner.warn({
+        message: formatColorMessage(
+          "Color.parseString",
+          `Unknown color string "${str}".`,
+          "The value must be a valid color string.",
+          "Using black as fallback.",
+        ),
+      });
     }
   }
 
