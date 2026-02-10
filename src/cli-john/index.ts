@@ -132,10 +132,18 @@ export class CLI {
     if (!JSTC.for([name]).check(["string"])) {
       this.#createWarn(
         "Invalid First Argument!",
-        "CLI.option expects a string as the first argument.",
-        "Using String(given argument) as fallback.",
+        "CLI.command expects a string as the first argument.",
+        "Using  JSON.stringify(given argument) as fallback.",
       );
-      name = String(name);
+      name = JSON.stringify(name);
+    }
+    if (name.includes(" ")) {
+      this.#createWarn(
+        "The given argument includes a space!",
+        "CLI.command expects the given argument to not have a space in it.",
+        "Using (given argument).replace(' ','')",
+      );
+      name = name.replace(" ", "");
     }
     let c = new CLI.Command(name, this.command.bind(this));
     let f = this.#commands.findIndex((a) => a.name === name);
@@ -369,10 +377,18 @@ export namespace CLI {
       if (!JSTC.for([name]).check(["string"])) {
         this.#createWarn(
           "First argument is invalid!",
-          "The first argument must be a string",
-          "Using String(argument) as fallback",
+          "The first argument in CLI.command.option must be a string",
+          "Using JSON.stringify(argument) as fallback",
         );
-        name = String(name);
+        name = JSON.stringify(name);
+      }
+      if (name.includes(" ")) {
+        this.#createWarn(
+          "The given argument includes a space!",
+          "CLI.command.option expects the given argument to not have a space in it.",
+          "Using (given argument).replace(' ','')",
+        );
+        name = name.replace(" ", "");
       }
       let o = new CLI.Command.Option(
         name,
@@ -553,9 +569,9 @@ class UtilitiesClass {
       cliWarner.warn({
         message: `[UtilitiesClass.addTag] @briklab/lib/cli-john: Invalid Arguments!
         Hint: The first argument must be a string, and the second argument must be a object.
-        Using String(argument1) and {} as fallback.`,
+        Using  JSON.stringify(argument1) and {} as fallback.`,
       });
-      name = String(name);
+      name = JSON.stringify(name);
       config = {};
     }
     const fullConfig = {
@@ -586,9 +602,9 @@ class UtilitiesClass {
       cliWarner.warn({
         message: `[UtilitiesClass.setTagStyle] @briklab/lib/cli-john: Invalid arguments!
         Hint: The first argument must be a string and the second argument must be a instance of InlineStyle
-        Using String(firstArgument) and new InlineStyle({}) as fallback`,
+        Using  JSON.stringify(firstArgument) and new InlineStyle({}) as fallback`,
       });
-      tagName = String(tagName);
+      tagName = JSON.stringify(tagName);
       style = new InlineStyle({});
     }
     if (!this.tags[tagName]) {
@@ -609,9 +625,9 @@ class UtilitiesClass {
       cliWarner.warn({
         message: `[UtilitiesClass.log] @briklab/lib/cli-john: Invalid Arguments!
         Hint: The first argument must be a string
-        Using String(argument1) as fallback`,
+        Using  JSON.stringify(argument1) as fallback`,
       });
-      tagName = String(tagName);
+      tagName = JSON.stringify(tagName);
     }
 
     if (!messages || messages.length === 0) messages = [""];
@@ -690,4 +706,3 @@ class UtilitiesClass {
 export const Utilities = new UtilitiesClass();
 //#endregion
 // -------------------------------------------------------------------------------------------------------
-

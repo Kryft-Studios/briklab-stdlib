@@ -163,7 +163,7 @@ export class JSTypeChecker {
           `[JSTC.addCustomHandler] @briklab/lib/jstc: Invalid Arguments!`
         );
       }
-      name = String(name);
+      name =  JSON.stringify(name);
       handler = () => false;
     }
     this.#__CustomHandler[name] = handler;

@@ -145,7 +145,7 @@ export default class Warner {
     }
 
     setPackageName(name: string) {
-        this.#options.packageName = String(name);
+        this.#options.packageName =  JSON.stringify(name);
     }
 
     clear() {
@@ -198,7 +198,7 @@ export default class Warner {
   #formatSummaryForBrowser() {
     const count = this.#warnings.length;
     const max = this.#options.maxWarnings;
-    const displayCount = max ? (count > max ? `${max}+` : String(count)) : String(count);
+    const displayCount = max ? (count > max ? `${max}+` :  JSON.stringify(count)) :  JSON.stringify(count);
     const msg = `${displayCount} warnings collected`;
     const css = "background:#f9a825;color:#000;padding:4px 8px;border-radius:4px;font-weight:700;";
     return [msg, css];
@@ -207,7 +207,7 @@ export default class Warner {
   #formatSummaryForNode() {
     const count = this.#warnings.length;
     const max = this.#options.maxWarnings;
-    const displayCount = max ? (count > max ? `${max}+` : String(count)) : String(count);
+    const displayCount = max ? (count > max ? `${max}+` :  JSON.stringify(count)) :  JSON.stringify(count);
     return `${NODE_STYLES.bold}${NODE_STYLES.label}[SUMMARY]${NODE_STYLES.reset} ${displayCount} warnings collected${NODE_STYLES.reset}`;
   }
 
