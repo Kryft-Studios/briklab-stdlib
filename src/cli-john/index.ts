@@ -61,6 +61,21 @@ import Color from "../color/index.js";
 import { createWarner } from "../warner/index.js";
 
 const cliWarner = createWarner("@briklab/lib/cli-john");
+
+function formatCLIMessage(
+  scope: string,
+  message: string,
+  hint?: string,
+  otherMessage?: string,
+): string {
+  return [
+    `[${scope}] @briklab/lib/cli-john: ${message}`,
+    hint ? `Hint: ${hint}` : undefined,
+    otherMessage,
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join("\n");
+}
 JSTC.addCustomHandler("NodeJS Process", (p: any) => {
   return (
     p &&
@@ -106,7 +121,7 @@ export class CLI {
   ) {
     if (!JSTC.for([process]).check(["NodeJS Process"])) {
       throw this.#createErr(
-        "Invalid First Argument!",
+        "Invalid first argument.",
         "You must pass a valid NodeJS process (imported from node:process) while constructing a CLI Class!",
       );
     }
@@ -131,7 +146,7 @@ export class CLI {
   command(name: string) {
     if (!JSTC.for([name]).check(["string"])) {
       this.#createWarn(
-        "Invalid First Argument!",
+        "Invalid first argument.",
         "CLI.command expects a string as the first argument.",
         "Using  JSON.stringify(given argument) as fallback.",
       );
@@ -139,7 +154,7 @@ export class CLI {
     }
     if (name.includes(" ")) {
       this.#createWarn(
-        "The given argument includes a space!",
+        "The given argument includes a space.",
         "CLI.command expects the given argument to not have a space in it.",
         "Using (given argument).replace(' ','')",
       );
@@ -166,7 +181,7 @@ export class CLI {
   ) {
     if (!JSTC.for([event, func]).check(["string", "function"]))
       throw this.#createErr(
-        "Arguments in CLI.on are invalid!",
+        "Invalid arguments in CLI.on.",
         "The first argument must be a string, and the second argument must be a function.",
       );
     switch (event.toLowerCase()) {
@@ -175,7 +190,7 @@ export class CLI {
         break;
       default:
         this.#createWarn(
-          "Invalid event in CLI.on",
+          "Invalid event in CLI.on.",
           "Please enter a valid event from CLI.ValidEvents (array)",
         );
     }
@@ -253,15 +268,12 @@ export class CLI {
       this.setName = "CLI";
     }
   };
-  #createErr(message: string, hint: string) {
-    return new this.#ErrorClass(`${message}
-        Hint: ${hint}`);
+  #createErr(message: string, hint: string, otherMessage?: string) {
+    return new this.#ErrorClass(formatCLIMessage("Class CLI", message, hint, otherMessage));
   }
   #createWarn(message: string, hint: string, otherMessage?: string) {
     cliWarner.warn({
-      message: `[Class CLI] ${message}
-        Hint: ${hint}
-        ${otherMessage}`,
+      message: formatCLIMessage("Class CLI", message, hint, otherMessage),
     });
     return;
   }
@@ -311,9 +323,10 @@ export namespace CLI {
         this.setName = "CLI.Command";
       }
     };
-    #createErr(message: string, hint: string) {
-      return new this.#ErrorClass(`${message}
-        Hint: ${hint}`);
+    #createErr(message: string, hint: string, otherMessage?: string) {
+      return new this.#ErrorClass(
+        formatCLIMessage("Class CLI.Command", message, hint, otherMessage),
+      );
     }
     #onCmdFunctions: Function[] = [];
     /**
@@ -331,7 +344,7 @@ export namespace CLI {
     ) {
       if (!JSTC.for([event, func]).check(["string", "function"]))
         throw this.#createErr(
-          "Arguments in CLI.Command.on are invalid!",
+          "Invalid arguments in CLI.Command.on.",
           "The first argument must be a string, and the second argument must be a function.",
         );
       switch (event.toLowerCase()) {
@@ -340,16 +353,14 @@ export namespace CLI {
           break;
         default:
           this.#createWarn(
-            "Invalid event in CLI.Command.on",
+            "Invalid event in CLI.Command.on.",
             "Please enter a valid event from CLI.ValidEvents (array)",
           );
       }
     }
     #createWarn(message: string, hint: string, otherMessage?: string) {
       cliWarner.warn({
-        message: `[Class CLI.Command] ${message}
-        Hint: ${hint}
-        ${otherMessage}`,
+        message: formatCLIMessage("Class CLI.Command", message, hint, otherMessage),
       });
       return;
     }
@@ -376,7 +387,7 @@ export namespace CLI {
     option(name: string) {
       if (!JSTC.for([name]).check(["string"])) {
         this.#createWarn(
-          "First argument is invalid!",
+          "Invalid first argument.",
           "The first argument in CLI.command.option must be a string",
           "Using JSON.stringify(argument) as fallback",
         );
@@ -384,7 +395,7 @@ export namespace CLI {
       }
       if (name.includes(" ")) {
         this.#createWarn(
-          "The given argument includes a space!",
+          "The given argument includes a space.",
           "CLI.command.option expects the given argument to not have a space in it.",
           "Using (given argument).replace(' ','')",
         );
@@ -458,7 +469,7 @@ export namespace CLI.Command {
     ) {
       if (!JSTC.for([event, func]).check(["string", "function"]))
         throw this.#createErr(
-          "Arguments in CLI.Command.Option.on are invalid!",
+          "Invalid arguments in CLI.Command.Option.on.",
           "The first argument must be a string, and the second argument must be a function.",
         );
       switch (event.toLowerCase()) {
@@ -467,7 +478,7 @@ export namespace CLI.Command {
           break;
         default:
           this.#createWarn(
-            "Invalid event in CLI.Command.Option.on",
+            "Invalid event in CLI.Command.Option.on.",
             "Please enter a valid event from CLI.ValidEvents (array)",
           );
       }
@@ -480,16 +491,15 @@ export namespace CLI.Command {
       }
     };
 
-    #createErr(message: string, hint: string) {
-      return new this.#ErrorClass(`${message}
-        Hint: ${hint}`);
+    #createErr(message: string, hint: string, otherMessage?: string) {
+      return new this.#ErrorClass(
+        formatCLIMessage("Class CLI.Command.Option", message, hint, otherMessage),
+      );
     }
 
     #createWarn(message: string, hint: string, otherMessage?: string) {
       cliWarner.warn({
-        message: `[Class CLI.Command.Option] ${message}
-        Hint: ${hint}
-        ${otherMessage}`,
+        message: formatCLIMessage("Class CLI.Command.Option", message, hint, otherMessage),
       });
       return;
     }
@@ -567,9 +577,12 @@ class UtilitiesClass {
   addTag(name: string, config: Partial<(typeof this.tags)["error"]> = {}) {
     if (!JSTC.for([name, config]).check(["string", "object"])) {
       cliWarner.warn({
-        message: `[UtilitiesClass.addTag] @briklab/lib/cli-john: Invalid Arguments!
-        Hint: The first argument must be a string, and the second argument must be a object.
-        Using  JSON.stringify(argument1) and {} as fallback.`,
+        message: formatCLIMessage(
+          "UtilitiesClass.addTag",
+          "Invalid arguments.",
+          "The first argument must be a string and the second argument must be an object.",
+          "Using JSON.stringify(argument1) and {} as fallback.",
+        ),
       });
       name = JSON.stringify(name);
       config = {};
@@ -585,10 +598,13 @@ class UtilitiesClass {
 
     if (!JSTC.for([fullConfig]).check(["Utilities Tag Config"])) {
       cliWarner.warn({
-        message: `[UtilitiesClass.addTag] @briklab/lib/cli-john: Invalid tag config passed for "${name}"
-        Hint: The config must be in format {tag?: string, showErrorInTag?:boolean, paddingLeft?:number, paddingRight?:number, styleName?:string}`,
+        message: formatCLIMessage(
+          "UtilitiesClass.addTag",
+          `Invalid tag config for "${name}".`,
+          "The config must match {tag?: string, showErrorInTag?: boolean, paddingLeft?: number, paddingRight?: number, styleName?: string}.",
+          JSON.stringify(fullConfig, null, 2),
+        ),
       });
-      cliWarner.warn({ message: JSON.stringify(fullConfig, null, 2) });
       return this;
     }
 
@@ -600,17 +616,23 @@ class UtilitiesClass {
   setTagStyle(tagName: string, style: InlineStyle) {
     if (typeof tagName !== "string" || !(style instanceof InlineStyle)) {
       cliWarner.warn({
-        message: `[UtilitiesClass.setTagStyle] @briklab/lib/cli-john: Invalid arguments!
-        Hint: The first argument must be a string and the second argument must be a instance of InlineStyle
-        Using  JSON.stringify(firstArgument) and new InlineStyle({}) as fallback`,
+        message: formatCLIMessage(
+          "UtilitiesClass.setTagStyle",
+          "Invalid arguments.",
+          "The first argument must be a string and the second argument must be an InlineStyle instance.",
+          "Using JSON.stringify(firstArgument) and new InlineStyle({}) as fallback.",
+        ),
       });
       tagName = JSON.stringify(tagName);
       style = new InlineStyle({});
     }
     if (!this.tags[tagName]) {
       cliWarner.warn({
-        message: `[UtilitiesClass.setTagStyle] @briklab/lib/cli-john: Tag "${tagName}" does not exist! 
-        Hint: Use a valid tag that you have defined or use "error"|"warn"|"info"`,
+        message: formatCLIMessage(
+          "UtilitiesClass.setTagStyle",
+          `Tag "${tagName}" does not exist.`,
+          'Use a defined tag or one of "error"|"warn"|"info".',
+        ),
       });
       return this;
     }
@@ -623,9 +645,12 @@ class UtilitiesClass {
   log(tagName: string, ...messages: any[]) {
     if (!JSTC.for([tagName]).check(["string"])) {
       cliWarner.warn({
-        message: `[UtilitiesClass.log] @briklab/lib/cli-john: Invalid Arguments!
-        Hint: The first argument must be a string
-        Using  JSON.stringify(argument1) as fallback`,
+        message: formatCLIMessage(
+          "UtilitiesClass.log",
+          "Invalid arguments.",
+          "The first argument must be a string.",
+          "Using JSON.stringify(argument1) as fallback.",
+        ),
       });
       tagName = JSON.stringify(tagName);
     }
@@ -635,8 +660,11 @@ class UtilitiesClass {
     const tag = this.tags[tagName];
     if (!tag) {
       cliWarner.warn({
-        message: `[UtilitiesClass.log] @briklab/lib/cli-john: Tag "${tagName}" does not exist! 
-        Hint: Use a valid tag that you have defined or use "error"|"warn"|"info"`,
+        message: formatCLIMessage(
+          "UtilitiesClass.log",
+          `Tag "${tagName}" does not exist.`,
+          'Use a defined tag or one of "error"|"warn"|"info".',
+        ),
       });
       console.log(...messages);
       return;
