@@ -170,10 +170,6 @@ export default class Warner {
             this.#print(warning);
             return;
         }
-
-        if (this.#options.level === "full") this.#print(warning);
-        if (this.#options.level === "summary") {
-        }
     }
 
   /**
@@ -232,8 +228,8 @@ export default class Warner {
             const cssArgs: string[] = [args[1]];
             let extraFmt = "";
             for (let i = 2; i < args.length; i += 2) {
-                extraFmt += "%c" + args[i - 1];
-                cssArgs.push(args[i]);
+                extraFmt += "%c" + args[i];
+                cssArgs.push(args[i + 1]);
             }
             if (extraFmt) fmt += extraFmt;
             console.warn(fmt, ...cssArgs);
@@ -250,7 +246,9 @@ export default class Warner {
 
     flush() {
         if (this.#options.level === "full") {
-            this.#warnings.forEach((w) => this.#print(w));
+            this.#warnings.forEach((w) => {
+                if (!w.instantlyWarn) this.#print(w);
+            });
         }
         if (this.#options.level === "summary") {
             try {
