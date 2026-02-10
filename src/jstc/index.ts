@@ -5,6 +5,10 @@
  * @module JSTC
  */
 
+import { createWarner } from "../warner/index.js";
+
+const jstcWarner = createWarner("@briklab/lib/jstc");
+
 /**
  * # Protection Level
  * Defines the security/validation level for operations
