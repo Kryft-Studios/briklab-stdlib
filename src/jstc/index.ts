@@ -5,6 +5,10 @@
  * @module JSTC
  */
 
+import { createWarner } from "../warner/index.js";
+
+const jstcWarner = createWarner("@briklab/lib/jstc");
+
 /**
  * # Protection Level
  * Defines the security/validation level for operations
@@ -87,10 +91,12 @@ export class JSTypeChecker {
    */
   for(args: unknown[]) {
     if(!Array.isArray(args)){
-      console.warn(`[JSTC.for] @briklab/lib/jstc: Invalid first argument!
-        Hint: The first argument must be a array.
-        Using [givenValue] as fallback`)
-        args = [args]
+      jstcWarner.warn({
+        message: `[JSTC.for] @briklab/lib/jstc: Invalid first argument!\n` +
+          `Hint: The first argument must be an array.\n` +
+          `Using [givenValue] as fallback.`,
+      });
+      args = [args];
     }
     return {
       /**
@@ -140,9 +146,9 @@ export class JSTypeChecker {
    */
   addCustomHandler(name: string, handler: (value: unknown) => boolean): void {
     if (this.#protectionLevel === "sandbox" && this.#frozenHandlers) {
-      console.warn(
-        `[JSTC.addCustomHandler] @briklab/lib/jstc: Protection level is "sandbox" - custom handlers are frozen!`
-      );
+      jstcWarner.warn({
+        message: `[JSTC.addCustomHandler] @briklab/lib/jstc: Protection level is "sandbox" - custom handlers are frozen!`,
+      });
       return;
     }
 
@@ -159,9 +165,9 @@ export class JSTypeChecker {
         );
       }
       if (this.#protectionLevel !== "none") {
-        console.warn(
-          `[JSTC.addCustomHandler] @briklab/lib/jstc: Invalid Arguments!`
-        );
+        jstcWarner.warn({
+          message: `[JSTC.addCustomHandler] @briklab/lib/jstc: Invalid arguments!`,
+        });
       }
       name =  JSON.stringify(name);
       handler = () => false;
