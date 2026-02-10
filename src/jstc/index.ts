@@ -49,6 +49,29 @@ export type JSType = PrimitiveType | ConstructorType | string;
  */
 export type JSTypeOrArray = JSType | JSType[];
 
+function formatJSTCMessage(
+  scope: string,
+  message: string,
+  hint?: string,
+  otherMessage?: string,
+): string {
+  const lines = [
+    `[${scope}] @briklab/lib/jstc: ${message}`,
+    hint ? `Hint: ${hint}` : undefined,
+    otherMessage,
+  ].filter((line): line is string => Boolean(line));
+
+  return lines.join("\n");
+}
+
+function warnJSTC(scope: string, message: string, hint?: string, otherMessage?: string): void {
+  console.warn(formatJSTCMessage(scope, message, hint, otherMessage));
+}
+
+function createJSTCError(scope: string, message: string, hint?: string, otherMessage?: string): Error {
+  return new Error(formatJSTCMessage(scope, message, hint, otherMessage));
+}
+
 /**
  * # JSTypeChecker
  * A JS Type Checker. Add type checking to your javascript files as well
@@ -91,11 +114,12 @@ export class JSTypeChecker {
    */
   for(args: unknown[]) {
     if(!Array.isArray(args)){
-      jstcWarner.warn({
-        message: `[JSTC.for] @briklab/lib/jstc: Invalid first argument!\n` +
-          `Hint: The first argument must be an array.\n` +
-          `Using [givenValue] as fallback.`,
-      });
+      warnJSTC(
+        "JSTC.for",
+        "Invalid first argument.",
+        "The first argument must be an array.",
+        "Using [givenValue] as fallback.",
+      );
       args = [args];
     }
     return {
@@ -146,28 +170,34 @@ export class JSTypeChecker {
    */
   addCustomHandler(name: string, handler: (value: unknown) => boolean): void {
     if (this.#protectionLevel === "sandbox" && this.#frozenHandlers) {
-      jstcWarner.warn({
-        message: `[JSTC.addCustomHandler] @briklab/lib/jstc: Protection level is "sandbox" - custom handlers are frozen!`,
-      });
+      warnJSTC(
+        "JSTC.addCustomHandler",
+        "Custom handlers are frozen in sandbox mode.",
+      );
       return;
     }
 
     if (this.#protectionLevel === "hardened" && this.#frozenHandlers) {
-      throw new Error(
-        `[JSTC.addCustomHandler] @briklab/lib/jstc: Protection level is "hardened" - custom handlers cannot be modified!`
+      throw createJSTCError(
+        "JSTC.addCustomHandler",
+        "Custom handlers cannot be modified in hardened mode.",
       );
     }
 
     if (!(typeof name === "string" && typeof handler === "function")) {
       if (this.#protectionLevel === "boundary" || this.#protectionLevel === "hardened") {
-        throw new Error(
-          `[JSTC.addCustomHandler] @briklab/lib/jstc: Invalid Arguments! First must be string, second must be function`
+        throw createJSTCError(
+          "JSTC.addCustomHandler",
+          "Invalid arguments.",
+          "The first argument must be a string and the second must be a function.",
         );
       }
       if (this.#protectionLevel !== "none") {
-        jstcWarner.warn({
-          message: `[JSTC.addCustomHandler] @briklab/lib/jstc: Invalid arguments!`,
-        });
+        warnJSTC(
+          "JSTC.addCustomHandler",
+          "Invalid arguments.",
+          "The first argument should be a string and the second should be a function.",
+        );
       }
       name =  JSON.stringify(name);
       handler = () => false;
