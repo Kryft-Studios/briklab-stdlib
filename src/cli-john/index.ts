@@ -173,30 +173,40 @@ export class CLI {
     }
   }
   run() {
-    let { options, commandArgs, command, failed } = this.#figureOutCommand();
+    let { options, commandArgs, commandName, commandMetadata, failed } =
+      this.#figureOutCommand();
     if (failed) return;
     for (let i = 0; i < this.#onCmdFunctions.length; i++) {
-      this.#onCmdFunctions[i]({ options, commandArgs, command });
+      this.#onCmdFunctions[i]({ options, commandArgs, command: commandName });
     }
-    let commandEnteredMetadata = this.#commands.find((a) => a.name === command);
-    if(!commandEnteredMetadata)return
-    const meta = (commandEnteredMetadata?.metadata() as any)
-    const onCmdFunctions =
-      meta?.onCmdFunctions ?? [];
+    const onCmdFunctions = (commandMetadata as any)?.onCmdFunctions ?? [];
     for (let i = 0; i < onCmdFunctions.length; i++) {
       onCmdFunctions[i]({ options, commandArgs });
     }
-    
+
     cliWarner.flush();
   }
   #figureOutCommand() {
     // for eg. we have nodepath filepath cli build
     let [, , ...commands] = this.#process.argv; // now its cli build. clear
     if (commands.length === 0)
-      return { options: [], command: "", commandArgs: [], failed: true };
-    let command = this.#commands.find((a) => a.name === commands[0]); // find the command
+      return {
+        options: [],
+        commandName: "",
+        commandMetadata: null,
+        commandArgs: [],
+        failed: true,
+      };
+    const command = this.#commands.find((a) => a.name === commands[0]); // find the command
     if (!command)
-      return { options: [], command: "", commandArgs: [], failed: true }; // command not found?
+      return {
+        options: [],
+        commandName: "",
+        commandMetadata: null,
+        commandArgs: [],
+        failed: true,
+      }; // command not found?
+    const commandName = commands[0];
     let commandArgs: string[] = [];
     const args = commands.slice(1);
     for (let i: number = 0; i < args.length; i++) {
@@ -222,8 +232,9 @@ export class CLI {
 
     return {
       options,
+      commandName,
+      commandMetadata: command.metadata(),
       commandArgs,
-      command,
       failed: false,
     };
   }
