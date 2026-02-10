@@ -1,8 +1,9 @@
 /**
- * Easy way to use colors
+ * Easy way to use colors with Protection Levels
  */
 
 import { createWarner } from "../warner/index.js";
+import type { ProtectionLevel } from "../jstc/index.js";
 
 const colorWarner = createWarner("@briklab/lib/color");
 
@@ -27,8 +28,13 @@ export default class Color {
   private g: number = 0;
   private b: number = 0;
   private a: number = 1;
+  private protectionLevel: ProtectionLevel = "boundary";
 
-  constructor(input: ColorInput) {
+  constructor(input: ColorInput, protectionLevel?: ProtectionLevel) {
+    if (protectionLevel && ["none", "boundary", "sandbox", "hardened"].includes(protectionLevel)) {
+      this.protectionLevel = protectionLevel;
+    }
+    
     if (typeof input === "string") {
       this.#parseString(input);
     } else if ("r" in input && "g" in input && "b" in input) {
@@ -43,10 +49,25 @@ export default class Color {
       this.b = b;
       this.a = input.a ?? 1;
     } else {
-      colorWarner.warn({message:`[Color.constructor] Invalid first argument!
-        Hint: The first argument must be a valid color array
-        Using black as fallback.`});
+      this.#handleInvalidInput();
     }
+  }
+
+  #handleInvalidInput(): void {
+    if (this.protectionLevel === "hardened") {
+      throw new Error(
+        `[Color.constructor] Invalid color input provided. Expected string, RGB, or HSL object.`
+      );
+    } else if (this.protectionLevel === "sandbox") {
+      colorWarner.warn({
+        message: `[Color.constructor] Invalid color input provided.`,
+      });
+    } else if (this.protectionLevel === "boundary") {
+      colorWarner.warn({
+        message: `[Color.constructor] Invalid color input! Using black as fallback.`,
+      });
+    }
+    // "none" - silent fallback
   }
 
   // -----------------------
@@ -78,9 +99,6 @@ export default class Color {
     return this.a === 1 ? this.hex() : this.rgba();
   }
 
-  /**
-   * ANSI / Terminal color helpers
-   */
   static RESET = "\x1b[0m";
   static BOLD = "\x1b[1m";
   static UNDERLINE = "\x1b[4m";

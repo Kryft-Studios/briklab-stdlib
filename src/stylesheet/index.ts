@@ -1,33 +1,54 @@
 /**
  * # @briklab/lib/stylesheet
- * Create inline styles in JS/TS
+ * Create inline styles in JS/TS with Protection Levels
  */
 
 import JSTC from "../jstc/index.js";
 import { CSSStyleDeclaration as UUIII } from "cssom";
 import Color from "../color/index.js";
 import { createWarner } from "../warner/index.js";
+import type { ProtectionLevel } from "../jstc/index.js";
 
 const stylesheetWarner = createWarner("@briklab/lib/stylesheet");
 /**
  * # InlineStyle
- * @classdesc Create a CSS Inline style.
+ * @classdesc Create a CSS Inline style with protection levels.
  * @class
  */
 export default class InlineStyle {
+  #protectionLevel: ProtectionLevel = "boundary";
+
   /**
    * ## constructor
-   * construct a InlineStyle
+   * construct a InlineStyle with optional protection level
    */
-  constructor(styleObject: { [key: string]: string }) {
+  constructor(styleObject: { [key: string]: string }, protectionLevel?: ProtectionLevel) {
+    if (protectionLevel && ["none", "boundary", "sandbox", "hardened"].includes(protectionLevel)) {
+      this.#protectionLevel = protectionLevel;
+    }
+
     if (!JSTC.for([styleObject]).check(["object|undefined"])) {
-      stylesheetWarner.warn({message:`[InlineStyle class] @briklab/lib/stylesheet: Invalid first argument!
-        Hint: The first argument must be a valid style object or not be given!
-        Using {"imeMode":${styleObject}} as fallback`});
+      this.#handleInvalidStyleObject(styleObject);
       styleObject = { imeMode: `${styleObject}` };
     }
     this.#styleObject = styleObject;
     this.#cssStyleDec = new UUIII();
+  }
+
+  #handleInvalidStyleObject(input: any): void {
+    if (this.#protectionLevel === "hardened") {
+      throw new Error(
+        `[InlineStyle constructor] Invalid style object provided!`
+      );
+    } else if (this.#protectionLevel === "sandbox") {
+      stylesheetWarner.warn({
+        message: `[InlineStyle class] Invalid style object provided.`,
+      });
+    } else if (this.#protectionLevel === "boundary") {
+      stylesheetWarner.warn({
+        message: `[InlineStyle class] Invalid style object! Using fallback.`,
+      });
+    }
   }
   #cssStyleDec: UUIII;
   generate() {

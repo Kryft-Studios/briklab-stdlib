@@ -1,5 +1,5 @@
 /**
- * Warning collector for briklab modules
+ * Warning collector for briklab modules with Protection Levels
  */
 
 import JSTC from "../jstc/index.js";
@@ -16,6 +16,15 @@ const NODE_STYLES = {
     bold: "\x1b[1m",
 };
 
+/**
+ * # Protection Level
+ * Defines the security/validation level for operations
+ */
+export type ProtectionLevel =
+  | "none"        // raw, fast, unsafe
+  | "boundary"    // validate inputs only
+  | "sandbox"     // isolate + freeze
+  | "hardened";   // prod, untrusted code
 
 /**
  * Warning Severity for Warner
@@ -70,7 +79,10 @@ export interface WarnerOptions {
   onSummary?: (count: number, warnings: Warning[]) => unknown;
 
   /**Package name */
-  packageName?: string
+  packageName?: string;
+
+  /** Protection level */
+  protectionLevel?: ProtectionLevel;
 }
 JSTC.addCustomHandler("WarnerOptions", (p: any) => {
   return (
@@ -100,6 +112,7 @@ JSTC.addCustomHandler("Warning",(p:any)=>{
 export default class Warner {
     #warnings: Warning[] = [];
     #options: WarnerOptions = {};
+    #protectionLevel: ProtectionLevel = "boundary";
 
     constructor(options: WarnerOptions = {}) {
         options.level = options.level ?? "summary";
@@ -107,6 +120,8 @@ export default class Warner {
         options.onWarn = options.onWarn ?? (() => {});
         options.onSummary = options.onSummary ?? (() => {});
         options.packageName = options.packageName ?? "";
+        options.protectionLevel = options.protectionLevel ?? "boundary";
+        this.#protectionLevel = options.protectionLevel;
         this.#options = options;
     }
 
@@ -116,6 +131,17 @@ export default class Warner {
 
     setLevel(level: WarningLevel) {
         if (["silent", "summary", "full"].includes(level)) this.#options.level = level;
+    }
+
+    setProtectionLevel(level: ProtectionLevel) {
+        if (["none", "boundary", "sandbox", "hardened"].includes(level)) {
+            this.#protectionLevel = level;
+            this.#options.protectionLevel = level;
+        }
+    }
+
+    getProtectionLevel(): ProtectionLevel {
+        return this.#protectionLevel;
     }
 
     setPackageName(name: string) {
@@ -247,9 +273,10 @@ const getDefaultLevel = (): WarningLevel => {
   return "summary";
 };
 export const warner = new Warner({ level: getDefaultLevel() });
-export function createWarner(packageName: string, level?: WarningLevel): Warner {
-  return new Warner({
-    packageName,
-    level: level ?? getDefaultLevel(),
-  });
+export function createWarner(packageName: string, options?: WarnerOptions | WarningLevel): Warner {
+  // Support both old API (level as second param) and new API (options object)
+  const opts: WarnerOptions = typeof options === "string"
+    ? { packageName, level: options as WarningLevel }
+    : { packageName, ...options };
+  return new Warner(opts);
 }

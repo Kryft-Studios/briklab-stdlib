@@ -55,7 +55,7 @@
 
 // -------------------------------------------------------------------------------------------------------
 //#region Defination of custom JSTC handler
-import JSTC from "../jstc/index.js";
+import JSTC, { type ProtectionLevel } from "../jstc/index.js";
 import InlineStyle, { StyleSheet } from "../stylesheet/index.js";
 import Color from "../color/index.js";
 import { createWarner } from "../warner/index.js";
@@ -88,15 +88,22 @@ export class CLI {
    * @param {NodeJS.Process} process - **The main process**
    * @param {Object} options - Optional configuration
    * @param {WarningLevel} options.warningLevel - Warning display level: 'silent', 'summary', or 'full'
+   * @param {ProtectionLevel} options.protectionLevel - Protection level for input validation
    * @constructor
    * @constructs CLI
    * @example
    * import * as process from "node:process"
    * import {CLI} from "@briklab/lib/cli-john"
-   * const cli = new CLI(process, { warningLevel: "full" })
+   * const cli = new CLI(process, { warningLevel: "full", protectionLevel: "hardened" })
    * cli.run()
    */
-  constructor(process: NodeJS.Process, options?: { warningLevel?: "silent" | "summary" | "full" }) {
+  constructor(
+    process: NodeJS.Process,
+    options?: {
+      warningLevel?: "silent" | "summary" | "full";
+      protectionLevel?: ProtectionLevel;
+    },
+  ) {
     if (!JSTC.for([process]).check(["NodeJS Process"])) {
       throw this.#createErr(
         "Invalid First Argument!",
@@ -104,10 +111,16 @@ export class CLI {
       );
     }
     this.#process = process;
+    this.#protectionLevel = options?.protectionLevel ?? "boundary";
     if (options?.warningLevel) {
       cliWarner.setLevel(options.warningLevel);
     }
+    if (options?.protectionLevel) {
+      JSTC.setProtectionLevel(options.protectionLevel);
+      cliWarner.setProtectionLevel(options.protectionLevel);
+    }
   }
+  #protectionLevel: ProtectionLevel = "boundary";
   #commands: CLI.Command[] = [];
   /**
    * ### CLI.command
@@ -124,14 +137,25 @@ export class CLI {
       );
       name = String(name);
     }
-    let c = new CLI.Command(name);
+    let c = new CLI.Command(name, this.command.bind(this));
     let f = this.#commands.findIndex((a) => a.name === name);
     if (f !== -1) this.#commands[f] = c;
     else this.#commands.push(c);
     return c;
   }
   #onCmdFunctions: Function[] = [];
-  on(event: CLI.ValidEvent, func: Function) {
+  on(
+    event: CLI.ValidEvent,
+    func: ({
+      commandArgs,
+      command,
+      options,
+    }: {
+      commandArgs: string[];
+      command: string;
+      options: { arguments: string[]; optionName: string }[];
+    }) => any,
+  ) {
     if (!JSTC.for([event, func]).check(["string", "function"]))
       throw this.#createErr(
         "Arguments in CLI.on are invalid!",
@@ -154,6 +178,15 @@ export class CLI {
     for (let i = 0; i < this.#onCmdFunctions.length; i++) {
       this.#onCmdFunctions[i]({ options, commandArgs, command });
     }
+    let commandEnteredMetadata = this.#commands.find((a) => a.name === command);
+    if(!commandEnteredMetadata)return
+    const meta = (commandEnteredMetadata?.metadata() as any)
+    const onCmdFunctions =
+      meta?.onCmdFunctions ?? [];
+    for (let i = 0; i < onCmdFunctions.length; i++) {
+      onCmdFunctions[i]({ options, commandArgs });
+    }
+    
     cliWarner.flush();
   }
   #figureOutCommand() {
@@ -206,9 +239,11 @@ export class CLI {
         Hint: ${hint}`);
   }
   #createWarn(message: string, hint: string, otherMessage?: string) {
-    cliWarner.warn({message:`[Class CLI] ${message}
+    cliWarner.warn({
+      message: `[Class CLI] ${message}
         Hint: ${hint}
-        ${otherMessage}`});
+        ${otherMessage}`,
+    });
     return;
   }
 }
@@ -240,19 +275,63 @@ export namespace CLI {
    */
   export class Command {
     #name: string;
+    #commandcreatorfunction: Function;
     /**
      * ### Command Constructor
      * @param name The name of the command
      * @constructor
      */
-    constructor(name: string) {
+    constructor(name: string, commandcreatorfunction: Function) {
       this.#name = name;
+      this.#commandcreatorfunction = commandcreatorfunction;
       return this;
     }
+    #ErrorClass = class extends CLIErrors {
+      constructor(message: string) {
+        super(message);
+        this.setName = "CLI.Command";
+      }
+    };
+    #createErr(message: string, hint: string) {
+      return new this.#ErrorClass(`${message}
+        Hint: ${hint}`);
+    }
+    #onCmdFunctions: Function[] = [];
+    /**
+     * What to do when an specific event happens
+     */
+    on(
+      event: CLI.ValidEvent,
+      func: ({
+        commandArgs,
+        options,
+      }: {
+        commandArgs: string[];
+        options: { arguments: string[]; optionName: string }[];
+      }) => any,
+    ) {
+      if (!JSTC.for([event, func]).check(["string", "function"]))
+        throw this.#createErr(
+          "Arguments in CLI.Command.on are invalid!",
+          "The first argument must be a string, and the second argument must be a function.",
+        );
+      switch (event.toLowerCase()) {
+        case "command":
+          this.#onCmdFunctions.push(func);
+          break;
+        default:
+          this.#createWarn(
+            "Invalid event in CLI.Command.on",
+            "Please enter a valid event from CLI.ValidEvents (array)",
+          );
+      }
+    }
     #createWarn(message: string, hint: string, otherMessage?: string) {
-      cliWarner.warn({message:`[Class CLI.Command] ${message}
+      cliWarner.warn({
+        message: `[Class CLI.Command] ${message}
         Hint: ${hint}
-        ${otherMessage}`});
+        ${otherMessage}`,
+      });
       return;
     }
     #options: CLI.Command.Option[] = [];
@@ -261,18 +340,19 @@ export namespace CLI {
      * @returns {string}
      */
     get name(): String {
-      return this.#name;
+      return `${this.#name}`;
     }
     /**
      * the metadata of the Command
      * @returns {object}
      */
-    get metadata(): Object {
-      let metadata = {
+    metadata(): Object {
+      let meta = {
         options: this.#options.map((a) => a.metadata),
-        name: this.name,
+        name: `${this.name}`,
+        onCmdFunctions: [...this.#onCmdFunctions],
       };
-      return metadata;
+      return meta;
     }
     option(name: string) {
       if (!JSTC.for([name]).check(["string"])) {
@@ -283,11 +363,19 @@ export namespace CLI {
         );
         name = String(name);
       }
-      let o = new CLI.Command.Option(name);
+      let o = new CLI.Command.Option(
+        name,
+        this.option.bind(this),
+        this.#commandcreatorfunction,
+      );
       let f = this.#options.findIndex((a) => a.name === name);
       if (f !== -1) this.#options[f] = o;
       else this.#options.push(o);
       return o;
+    }
+
+    command(...args: any[]) {
+      this.#commandcreatorfunction(...args);
     }
   }
 }
@@ -300,19 +388,91 @@ export namespace CLI.Command {
    * A option for a CLI.Command
    */
   export class Option {
+    #name: string;
+    #optioncreatorfunction: Function;
+    #commandcreatorfunction: Function;
+    #onCmdFunctions: Function[] = [];
+
+    constructor(
+      name: string,
+      optioncreatorfunc: Function,
+      commandcreatorfunction: Function,
+    ) {
+      this.#name = name;
+      this.#optioncreatorfunction = optioncreatorfunc;
+      this.#commandcreatorfunction = commandcreatorfunction;
+      return this;
+    }
+
+    get name() {
+      return this.#name;
+    }
+
     get metadata() {
       let metadata = {
-        name: `${this.#name}`, // <-- Templates TO NOT reference the actual variable
+        name: `${this.#name}`,
+        onCmdFunctions: [...this.#onCmdFunctions],
       };
       return metadata;
     }
-    #name: string;
-    constructor(name: string) {
-      this.#name = name;
-      return this;
+
+    /**
+     * What to do when an specific event happens for this option
+     */
+    on(
+      event: CLI.ValidEvent,
+      func: ({
+        commandArgs,
+        options,
+      }: {
+        commandArgs: string[];
+        options: { arguments: string[]; optionName: string }[];
+      }) => any,
+    ) {
+      if (!JSTC.for([event, func]).check(["string", "function"]))
+        throw this.#createErr(
+          "Arguments in CLI.Command.Option.on are invalid!",
+          "The first argument must be a string, and the second argument must be a function.",
+        );
+      switch (event.toLowerCase()) {
+        case "command":
+          this.#onCmdFunctions.push(func);
+          break;
+        default:
+          this.#createWarn(
+            "Invalid event in CLI.Command.Option.on",
+            "Please enter a valid event from CLI.ValidEvents (array)",
+          );
+      }
     }
-    get name() {
-      return this.#name;
+
+    #ErrorClass = class extends CLIErrors {
+      constructor(message: string) {
+        super(message);
+        this.setName = "CLI.Command.Option";
+      }
+    };
+
+    #createErr(message: string, hint: string) {
+      return new this.#ErrorClass(`${message}
+        Hint: ${hint}`);
+    }
+
+    #createWarn(message: string, hint: string, otherMessage?: string) {
+      cliWarner.warn({
+        message: `[Class CLI.Command.Option] ${message}
+        Hint: ${hint}
+        ${otherMessage}`,
+      });
+      return;
+    }
+
+    command(...args: any[]) {
+      this.#commandcreatorfunction(...args);
+    }
+
+    option(...args: any[]) {
+      this.#optioncreatorfunction(...args);
     }
   }
 }
@@ -379,9 +539,11 @@ class UtilitiesClass {
   /** Add a new tag */
   addTag(name: string, config: Partial<(typeof this.tags)["error"]> = {}) {
     if (!JSTC.for([name, config]).check(["string", "object"])) {
-      cliWarner.warn({message:`[UtilitiesClass.addTag] @briklab/lib/cli-john: Invalid Arguments!
+      cliWarner.warn({
+        message: `[UtilitiesClass.addTag] @briklab/lib/cli-john: Invalid Arguments!
         Hint: The first argument must be a string, and the second argument must be a object.
-        Using String(argument1) and {} as fallback.`});
+        Using String(argument1) and {} as fallback.`,
+      });
       name = String(name);
       config = {};
     }
@@ -395,9 +557,11 @@ class UtilitiesClass {
     };
 
     if (!JSTC.for([fullConfig]).check(["Utilities Tag Config"])) {
-      cliWarner.warn({message:`[UtilitiesClass.addTag] @briklab/lib/cli-john: Invalid tag config passed for "${name}"
-        Hint: The config must be in format {tag?: string, showErrorInTag?:boolean, paddingLeft?:number, paddingRight?:number, styleName?:string}` });
-      cliWarner.warn({message: JSON.stringify(fullConfig, null, 2)});
+      cliWarner.warn({
+        message: `[UtilitiesClass.addTag] @briklab/lib/cli-john: Invalid tag config passed for "${name}"
+        Hint: The config must be in format {tag?: string, showErrorInTag?:boolean, paddingLeft?:number, paddingRight?:number, styleName?:string}`,
+      });
+      cliWarner.warn({ message: JSON.stringify(fullConfig, null, 2) });
       return this;
     }
 
@@ -408,15 +572,19 @@ class UtilitiesClass {
   /** Set style for a tag */
   setTagStyle(tagName: string, style: InlineStyle) {
     if (typeof tagName !== "string" || !(style instanceof InlineStyle)) {
-      cliWarner.warn({message:`[UtilitiesClass.setTagStyle] @briklab/lib/cli-john: Invalid arguments!
+      cliWarner.warn({
+        message: `[UtilitiesClass.setTagStyle] @briklab/lib/cli-john: Invalid arguments!
         Hint: The first argument must be a string and the second argument must be a instance of InlineStyle
-        Using String(firstArgument) and new InlineStyle({}) as fallback`});
+        Using String(firstArgument) and new InlineStyle({}) as fallback`,
+      });
       tagName = String(tagName);
       style = new InlineStyle({});
     }
     if (!this.tags[tagName]) {
-      cliWarner.warn({message:`[UtilitiesClass.setTagStyle] @briklab/lib/cli-john: Tag "${tagName}" does not exist! 
-        Hint: Use a valid tag that you have defined or use "error"|"warn"|"info"`});
+      cliWarner.warn({
+        message: `[UtilitiesClass.setTagStyle] @briklab/lib/cli-john: Tag "${tagName}" does not exist! 
+        Hint: Use a valid tag that you have defined or use "error"|"warn"|"info"`,
+      });
       return this;
     }
     const styleName = `${tagName} Tag Color`;
@@ -427,9 +595,11 @@ class UtilitiesClass {
 
   log(tagName: string, ...messages: any[]) {
     if (!JSTC.for([tagName]).check(["string"])) {
-      cliWarner.warn({message:`[UtilitiesClass.log] @briklab/lib/cli-john: Invalid Arguments!
+      cliWarner.warn({
+        message: `[UtilitiesClass.log] @briklab/lib/cli-john: Invalid Arguments!
         Hint: The first argument must be a string
-        Using String(argument1) as fallback`});
+        Using String(argument1) as fallback`,
+      });
       tagName = String(tagName);
     }
 
@@ -437,8 +607,10 @@ class UtilitiesClass {
 
     const tag = this.tags[tagName];
     if (!tag) {
-      cliWarner.warn({message:`[UtilitiesClass.log] @briklab/lib/cli-john: Tag "${tagName}" does not exist! 
-        Hint: Use a valid tag that you have defined or use "error"|"warn"|"info"`});
+      cliWarner.warn({
+        message: `[UtilitiesClass.log] @briklab/lib/cli-john: Tag "${tagName}" does not exist! 
+        Hint: Use a valid tag that you have defined or use "error"|"warn"|"info"`,
+      });
       console.log(...messages);
       return;
     }
@@ -458,15 +630,29 @@ class UtilitiesClass {
       const reset = Color.RESET;
 
       if (tag.showErrorInTag) {
-        console.log("[" + ansi + leftPad + tag.tag + rightPad + reset + "]:", ...messages);
+        console.log(
+          "[" + ansi + leftPad + tag.tag + rightPad + reset + "]:",
+          ...messages,
+        );
       } else {
-        console.log(ansi + "[" + leftPad + tag.tag + rightPad + "]" + reset + ":", ...messages);
+        console.log(
+          ansi + "[" + leftPad + tag.tag + rightPad + "]" + reset + ":",
+          ...messages,
+        );
       }
     } else {
       if (tag.showErrorInTag) {
-        console.log(`[%c${leftPad}${tag.tag}${rightPad}%c]:`, style, ...messages);
+        console.log(
+          `[%c${leftPad}${tag.tag}${rightPad}%c]:`,
+          style,
+          ...messages,
+        );
       } else {
-        console.log(`%c[${leftPad}${tag.tag}${rightPad}]%c:`, style, ...messages);
+        console.log(
+          `%c[${leftPad}${tag.tag}${rightPad}]%c:`,
+          style,
+          ...messages,
+        );
       }
     }
   }
@@ -493,7 +679,4 @@ class UtilitiesClass {
 export const Utilities = new UtilitiesClass();
 //#endregion
 // -------------------------------------------------------------------------------------------------------
-//#region TODO
-// TODO: Wire Options to Commands
-// TODO: Create metadata getter-s in both commands and options
-//#endregion
+
