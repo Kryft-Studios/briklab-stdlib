@@ -6,8 +6,10 @@
  */
 
 import { createWarner } from "../warner/index.js";
+import { loadNativeAddon } from "../native/load.js";
 
 const jstcWarner = createWarner("@briklab/lib/jstc");
+export const native = loadNativeAddon(import.meta.url, "jstc");
 
 /**
  * # Protection Level

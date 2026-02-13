@@ -26,8 +26,9 @@ import { CLI } from "@briklab/lib/cli-john";
 ## Installation
 Normally, the format is:
 ```bash
-[packageManager] install/add/i @briklab/lib
+[packageManager] [install/add/i] @briklab/lib
 ```
 **Examples:**
 - **pnpm:**`pnpm add @briklab/lib`
 - **npm:**`npm i @briklab/lib`
+

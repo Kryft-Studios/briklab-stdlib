@@ -1,0 +1,17 @@
+{
+  "configurations": [
+    {
+      "name": "Node",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/node_modules/node-addon-api",
+"${env:NODE_GYP_CACHE}/include/node"
+      ],
+      "defines": ["NAPI_DISABLE_CPP_EXCEPTIONS"],
+      "cStandard": "c17",
+      "cppStandard": "c++20",
+      "intelliSenseMode": "windows-gcc-x64"
+    }
+  ],
+  "version": 4
+}

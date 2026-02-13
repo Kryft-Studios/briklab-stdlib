@@ -2,10 +2,11 @@
  * Warning collector for briklab modules with Protection Levels
  */
 
-import JSTC from "../jstc/index.js";
+import { loadNativeAddon } from "../native/load.js";
 
 const IS_BROWSER = typeof window !== "undefined" && typeof window?.console !== "undefined";
 const IS_NODE = typeof process !== "undefined" && !!process.stdout;
+export const native = loadNativeAddon(import.meta.url, "warner");
 
 const NODE_STYLES = {
     label: "\x1b[35m",  
@@ -84,32 +85,22 @@ export interface WarnerOptions {
   /** Protection level */
   protectionLevel?: ProtectionLevel;
 }
-JSTC.addCustomHandler("WarnerOptions", (p: any) => {
+function isWarning(value: unknown): value is Warning {
+  if (!value || typeof value !== "object") return false;
+  const p = value as Partial<Warning>;
   return (
-    p &&
-    typeof p === "object" &&
-    ((typeof p.level === "string"&&"silent summary full".split(" ").includes(p.level)) || !(p.level)) &&
-    (typeof p.maxWarnings === "number"||!(p.maxWarnings)) &&
-    (typeof p.onWarn === "function"||!(p.onWarn))&&
-    (typeof p.onSummary === "function"||!(p.onSummary))&&
-    (typeof p.packageName==="string"||!(p.packageName))
+    typeof p.message === "string" &&
+    (typeof p.source === "string" || p.source === undefined) &&
+    (typeof p.hint === "string" || p.hint === undefined) &&
+    (typeof p.instantlyWarn === "boolean" || p.instantlyWarn === undefined) &&
+    (typeof p.tag === "string" || p.tag === undefined) &&
+    (typeof p.documentation === "string" || p.documentation === undefined)
   );
-});
-JSTC.addCustomHandler("Warning",(p:any)=>{
-    return (
-        p&&
-        typeof p.message === "string"&&
-        (typeof p.source === "string"||!p.source)&&
-        (typeof p.hint === "string"||!p.hint)&&
-        (typeof p.instantlyWarn=== "boolean"||!p.instantlyWarn)&&
-        (typeof p.tag=== "string"||!p.tag)&&
-        (typeof p.documentation=== "string"||!p.documentation)
-    )
-})
+}
 /**
  * A Warner instance
  */
-export default class Warner {
+export class Warner {
     #warnings: Warning[] = [];
     #options: WarnerOptions = {};
     #protectionLevel: ProtectionLevel = "boundary";
@@ -157,7 +148,7 @@ export default class Warner {
     }
 
     warn(warning: Warning) {
-        if (!JSTC.for([warning]).check(["Warning"])) return;
+        if (!isWarning(warning)) return;
         if (this.#options.maxWarnings && this.#warnings.length < this.#options.maxWarnings) {
             this.#warnings.push(warning);
         }
@@ -270,6 +261,8 @@ const getDefaultLevel = (): WarningLevel => {
   }
   return "summary";
 };
+export default Warner;
+
 export const warner = new Warner({ level: getDefaultLevel() });
 export function createWarner(packageName: string, options?: WarnerOptions | WarningLevel): Warner {
   // Support both old API (level as second param) and new API (options object)
@@ -278,3 +271,4 @@ export function createWarner(packageName: string, options?: WarnerOptions | Warn
     : { packageName, ...options };
   return new Warner(opts);
 }
+

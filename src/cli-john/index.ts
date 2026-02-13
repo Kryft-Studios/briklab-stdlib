@@ -59,8 +59,10 @@ import JSTC, { type ProtectionLevel } from "../jstc/index.js";
 import InlineStyle, { StyleSheet } from "../stylesheet/index.js";
 import Color from "../color/index.js";
 import { createWarner } from "../warner/index.js";
+import { loadNativeAddon } from "../native/load.js";
 
 const cliWarner = createWarner("@briklab/lib/cli-john");
+export const native = loadNativeAddon(import.meta.url, "cli-john");
 
 function formatCLIMessage(
   scope: string,

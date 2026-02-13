@@ -4,8 +4,10 @@
 
 import { createWarner } from "../warner/index.js";
 import type { ProtectionLevel } from "../jstc/index.js";
+import { loadNativeAddon } from "../native/load.js";
 
 const colorWarner = createWarner("@briklab/lib/color");
+export const native = loadNativeAddon(import.meta.url, "color");
 
 function formatColorMessage(
   scope: string,
@@ -38,7 +40,7 @@ const NAMED_COLORS: Record<string, string> = {
   gray: "#808080",
 };
 
-export default class Color {
+export class Color {
   private r: number = 0;
   private g: number = 0;
   private b: number = 0;
@@ -282,3 +284,7 @@ export default class Color {
     return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
   }
 }
+
+export default Color;
+
+

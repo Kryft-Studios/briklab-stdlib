@@ -15,6 +15,10 @@
   "type": "module",
   "scripts": {
     "build": "tsc && node build.js",
+    "configure:native": "node build.js --configure-only",
+    "build:native": "node build.js --native-only",
+    "bench:node-vs-ts": "node benchmark.mjs",
+    "test:native": "pnpm run build:native && node test.js",
     "test:smoke": "pnpm run build && node ./test-dist.js",
     "prepublishOnly": "pnpm run build"
   },
@@ -40,11 +44,12 @@
   "repository": {
     "url": "https://github.com/EkaanshPC/briklab-stdlib"
   },
-  "version": "1.3.3",
+  "version": "2.0.0",
   "devDependencies": {
     "@types/cssom": "^0.4.3",
     "@types/node": "^25.1.0",
     "esbuild": "^0.27.2",
+    "node-gyp": "^12.2.0",
     "typescript": "^5.9.3"
   },
   "exports": {
@@ -56,24 +61,45 @@
       "import": "./dist/cli-john/index.js",
       "types": "./dist/cli-john/index.d.ts"
     },
+    "./cli-john/node": {
+      "import": "./dist/cli-john/node/index.js",
+      "types": "./dist/cli-john/node/index.d.ts"
+    },
     "./jstc": {
       "import": "./dist/jstc/index.js",
       "types": "./dist/jstc/index.d.ts"
+    },
+    "./jstc/node": {
+      "import": "./dist/jstc/node/index.js",
+      "types": "./dist/jstc/node/index.d.ts"
     },
     "./stylesheet": {
       "import": "./dist/stylesheet/index.js",
       "types": "./dist/stylesheet/index.d.ts"
     },
+    "./stylesheet/node": {
+      "import": "./dist/stylesheet/node/index.js",
+      "types": "./dist/stylesheet/node/index.d.ts"
+    },
     "./color": {
       "import": "./dist/color/index.js",
       "types": "./dist/color/index.d.ts"
     },
+    "./color/node": {
+      "import": "./dist/color/node/index.js",
+      "types": "./dist/color/node/index.d.ts"
+    },
     "./warner": {
-      "import":"./dist/warner/index.js",
-      "types":"./dist/warner/index.d.ts"
+      "import": "./dist/warner/index.js",
+      "types": "./dist/warner/index.d.ts"
+    },
+    "./warner/node": {
+      "import": "./dist/warner/node/index.js",
+      "types": "./dist/warner/node/index.d.ts"
     }
   },
   "dependencies": {
-    "cssom": "^0.5.0"
+    "cssom": "^0.5.0",
+    "node-addon-api": "^8.5.0"
   }
 }

@@ -8,8 +8,10 @@ import { CSSStyleDeclaration as UUIII } from "cssom";
 import Color from "../color/index.js";
 import { createWarner } from "../warner/index.js";
 import type { ProtectionLevel } from "../jstc/index.js";
+import { loadNativeAddon } from "../native/load.js";
 
 const stylesheetWarner = createWarner("@briklab/lib/stylesheet");
+export const native = loadNativeAddon(import.meta.url, "stylesheet");
 
 function formatStylesheetMessage(
   scope: string,
@@ -30,7 +32,7 @@ function formatStylesheetMessage(
  * @classdesc Create a CSS Inline style with protection levels.
  * @class
  */
-export default class InlineStyle {
+export class InlineStyle {
   #protectionLevel: ProtectionLevel = "boundary";
 
   /**
@@ -359,3 +361,5 @@ export class StyleSheet {
     return this.generate();
   }
 }
+
+export default InlineStyle;

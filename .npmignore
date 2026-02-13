@@ -4,3 +4,8 @@ src
 test.ts
 .gitignore
 build.js
+benchmark.mjs
+test.js
+test.mjs
+inline.exe
+CONTRIBUTING.md
