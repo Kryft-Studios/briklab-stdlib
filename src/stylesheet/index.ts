@@ -104,7 +104,7 @@ export class InlineStyle {
           "Provide style values as strings.",
           "Coercing value to string.",
         )});
-        val =  JSON.stringify(val);
+        val = String(val);
       }
       a.setProperty(prop, val);
     }
@@ -124,7 +124,7 @@ export class InlineStyle {
     const colorVal = s.color || s["color"];
     if (colorVal) {
       try {
-        const c = new Color( JSON.stringify(colorVal));
+        const c = new Color(String(colorVal));
         parts.push(c.ansiTruecolor());
       } catch (e) {
         stylesheetWarner.warn({message: formatStylesheetMessage(
@@ -139,7 +139,7 @@ export class InlineStyle {
     const bgVal = s["background-color"] || s.backgroundColor;
     if (bgVal) {
       try {
-        const c = new Color( JSON.stringify(bgVal));
+        const c = new Color(String(bgVal));
         parts.push(c.ansiTruecolorBg());
       } catch (e) {
         stylesheetWarner.warn({message: formatStylesheetMessage(
@@ -193,7 +193,7 @@ export class InlineStyle {
     return string.replace(/([A-Z])/g, (match) => `-${match.toLowerCase()}`);
   }
   #convertKeysToValidCSS(string: string) {
-    const parts =  JSON.stringify(string).split(";");
+    const parts = string.split(";");
     let out = "";
     for (let i = 0; i < parts.length; i++) {
       const raw = parts[i].trim();
