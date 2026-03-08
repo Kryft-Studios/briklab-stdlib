@@ -11,13 +11,6 @@ git checkout -b my-feature
 <packageManager> install
 ```
 
-# Important Note for VSCode users
-In your enviorment variables, you must do
-```json
-setx NODE_GYP_CACHE "C:/Users/<YourUsername>/AppData/Local/node-gyp/<NodeVersion>"
-```
-or else VSCode will throw errors
-
 # How to build
 Just use the build command:
 ```bash
