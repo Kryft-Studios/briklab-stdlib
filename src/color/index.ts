@@ -26,8 +26,8 @@ function formatColorMessage(
 
 type ColorInput =
   | string
-  | { r: number; g: number; b: number; a?: number }
-  | { h: number; s: number; l: number; a?: number };
+  | { r?: number; g?: number; b?: number; a?: number }
+  | { h?: number; s?: number; l?: number; a?: number };
 
 const NAMED_COLORS: Record<string, string> = {
   red: "#ff0000",
@@ -55,15 +55,15 @@ export class Color {
     if (typeof input === "string") {
       this.#parseString(input);
     } else if ("r" in input && "g" in input && "b" in input) {
-      this.r = this.#clamp(input.r);
-      this.g = this.#clamp(input.g);
-      this.b = this.#clamp(input.b);
+      this.r = this.#clamp(input.r ?? 0);
+      this.g = this.#clamp(input.g ?? 0);
+      this.b = this.#clamp(input.b ?? 0);
       this.a = input.a ?? 1;
     } else if ("h" in input && "s" in input && "l" in input) {
-      const { r, g, b } = this.#hslToRgb(input.h, input.s, input.l);
-      this.r = r;
-      this.g = g;
-      this.b = b;
+      const { r, g, b } = this.#hslToRgb(input.h ?? 0, input.s ?? 0, input.l ?? 0);
+      this.r = r ?? 0;
+      this.g = g ?? 0;
+      this.b = b ?? 0;
       this.a = input.a ?? 1;
     } else {
       this.#handleInvalidInput();
@@ -183,12 +183,12 @@ export class Color {
     const mods = `${opts.bold ? Color.BOLD : ""}${opts.underline ? Color.UNDERLINE : ""}`;
     return `${mods}${seq}${text}${Color.RESET}`;
   }
-  toRgbaArray(){
-    return [this.r,this.g,this.b,this.a]
+  toRgbaArray():[number,number,number,number]{
+    return [this.r||0,this.g||0,this.b||0,this.a||1]
   }
-  toHslaArray(){
+  toHslaArray():[number,number,number,number]{
     const {h,s,l} = this.#rgbToHsl(this.r,this.g,this.a)
-    return [h,s,l,this.a]
+    return [h||0,s||0,l||0,this.a||1]
   }
   toHslaObj(){
     return {a:this.a,...this.#rgbToHsl(this.r,this.g,this.a)}
@@ -297,7 +297,17 @@ export class Color {
     return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
   }
 }
-
+export namespace Color {
+  export function fromHex(hex:string){
+    return new Color(hex)
+  }
+  export function fromRgba(rgba:{ r?: number; g?: number; b?: number; a?: number }={}){
+    return new Color(rgba)
+  }
+  export function fromHsla(hsla:{ h?: number; s?: number; l?: number; a?: number }={}){
+    return new Color(hsla)
+  }
+}
 export default Color;
 
 
