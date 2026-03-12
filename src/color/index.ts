@@ -183,8 +183,8 @@ export class Color {
     const mods = `${opts.bold ? Color.BOLD : ""}${opts.underline ? Color.UNDERLINE : ""}`;
     return `${mods}${seq}${text}${Color.RESET}`;
   }
-  toRgbArray(){
-    return [this.r,this,this.g,this.b,this.a]
+  toRgbaArray(){
+    return [this.r,this.g,this.b,this.a]
   }
   toHslaArray(){
     const {h,s,l} = this.#rgbToHsl(this.r,this.g,this.a)
