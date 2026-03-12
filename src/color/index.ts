@@ -183,7 +183,20 @@ export class Color {
     const mods = `${opts.bold ? Color.BOLD : ""}${opts.underline ? Color.UNDERLINE : ""}`;
     return `${mods}${seq}${text}${Color.RESET}`;
   }
-
+  toRgbArray(){
+    return [this.r,this,this.g,this.b,this.a]
+  }
+  toHslaArray(){
+    const {h,s,l} = this.#rgbToHsl(this.r,this.g,this.a)
+    return [h,s,l,this.a]
+  }
+  toHslaObj(){
+    return {a:this.a,...this.#rgbToHsl(this.r,this.g,this.a)}
+  }
+  toRgbaObj(){
+     const {r,g,b,a}=this;
+     return {r,g,b,a}
+  }
   #clamp(value: number): number {
     return Math.max(0, Math.min(255, value));
   }
