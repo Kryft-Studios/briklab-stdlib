@@ -24,8 +24,25 @@ function formatColorMessage(
     .join("\n");
 }
 
+type ColorFormat =
+  | "auto"
+  | "rgb"
+  | "rgba"
+  | "hsl"
+  | "hsla"
+  | "hex"
+  | "css"
+  | "rgbaobj"
+  | "rgbaarray"
+  | "unitrgba"
+  | "unitrgbaobj"
+  | "hslaobj"
+  | "hslaarray";
+
 type ColorInput =
   | string
+  | Color
+  | number[]
   | { r?: number; g?: number; b?: number; a?: number }
   | { h?: number; s?: number; l?: number; a?: number };
 
@@ -41,30 +58,97 @@ const NAMED_COLORS: Record<string, string> = {
 };
 
 export class Color {
+  static AUTO: ColorFormat = "auto";
+  static RGB: ColorFormat = "rgb";
+  static RGBA: ColorFormat = "rgba";
+  static HSL: ColorFormat = "hsl";
+  static HSLA: ColorFormat = "hsla";
+  static HEX: ColorFormat = "hex";
+  static CSS: ColorFormat = "css";
+
+  static RGBAOBJ: ColorFormat = "rgbaobj";
+  static RGBAARRAY: ColorFormat = "rgbaarray";
+  static UNITRGBA: ColorFormat = "unitrgba";
+  static UNITRGBAOBJ: ColorFormat = "unitrgbaobj";
+  static HSLAOBJ: ColorFormat = "hslaobj";
+  static HSLAARRAY: ColorFormat = "hslaarray";
+
   private r: number = 0;
   private g: number = 0;
   private b: number = 0;
   private a: number = 1;
   private protectionLevel: ProtectionLevel = "boundary";
 
-  constructor(input: ColorInput, protectionLevel?: ProtectionLevel) {
+  constructor(
+    input: ColorInput,
+    formatOrProtection?: ColorFormat | ProtectionLevel,
+    protectionLevel?: ProtectionLevel,
+  ) {
+    let format: ColorFormat = "auto";
+
+    if (typeof formatOrProtection === "string") {
+      const protLevels = ["none", "boundary", "sandbox", "hardened"];
+      if (protLevels.includes(formatOrProtection)) {
+        protectionLevel = formatOrProtection as ProtectionLevel;
+      } else {
+        format = formatOrProtection as ColorFormat;
+      }
+    }
+
     if (protectionLevel && ["none", "boundary", "sandbox", "hardened"].includes(protectionLevel)) {
       this.protectionLevel = protectionLevel;
     }
-    
+
     if (typeof input === "string") {
       this.#parseString(input);
-    } else if ("r" in input && "g" in input && "b" in input) {
-      this.r = this.#clamp(input.r ?? 0);
-      this.g = this.#clamp(input.g ?? 0);
-      this.b = this.#clamp(input.b ?? 0);
-      this.a = input.a ?? 1;
-    } else if ("h" in input && "s" in input && "l" in input) {
-      const { r, g, b } = this.#hslToRgb(input.h ?? 0, input.s ?? 0, input.l ?? 0);
-      this.r = r ?? 0;
-      this.g = g ?? 0;
-      this.b = b ?? 0;
-      this.a = input.a ?? 1;
+    } else if (input instanceof Color) {
+      this.r = input.r;
+      this.g = input.g;
+      this.b = input.b;
+      this.a = input.a;
+    } else if (Array.isArray(input)) {
+      this.#parseArray(input, format);
+    } else if (typeof input === "object" && input !== null) {
+      const obj = input as {
+        r?: number;
+        g?: number;
+        b?: number;
+        a?: number;
+        h?: number;
+        s?: number;
+        l?: number;
+      };
+
+      if (format === "unitrgbaobj") {
+        this.r = this.#unitTo255(obj.r ?? 0);
+        this.g = this.#unitTo255(obj.g ?? 0);
+        this.b = this.#unitTo255(obj.b ?? 0);
+        this.a = obj.a ?? 1;
+      } else if (format === "rgbaobj") {
+        this.r = this.#clamp(obj.r ?? 0);
+        this.g = this.#clamp(obj.g ?? 0);
+        this.b = this.#clamp(obj.b ?? 0);
+        this.a = obj.a ?? 1;
+      } else if (format === "hslaobj") {
+        const { r, g, b } = this.#hslToRgb(obj.h ?? 0, obj.s ?? 0, obj.l ?? 0);
+        this.r = r ?? 0;
+        this.g = g ?? 0;
+        this.b = b ?? 0;
+        this.a = obj.a ?? 1;
+      } else if ("r" in obj && "g" in obj && "b" in obj) {
+        this.r = this.#clamp(obj.r ?? 0);
+        this.g = this.#clamp(obj.g ?? 0);
+        this.b = this.#clamp(obj.b ?? 0);
+        this.a = obj.a ?? 1;
+      } else if ("h" in obj && "s" in obj && "l" in obj) {
+        const { r, g, b } = this.#hslToRgb(obj.h ?? 0, obj.s ?? 0, obj.l ?? 0);
+        this.r = r ?? 0;
+        this.g = g ?? 0;
+        this.b = b ?? 0;
+        this.a = obj.a ?? 1;
+      } else {
+        this.#handleInvalidInput();
+      }
     } else {
       this.#handleInvalidInput();
     }
@@ -183,19 +267,27 @@ export class Color {
     const mods = `${opts.bold ? Color.BOLD : ""}${opts.underline ? Color.UNDERLINE : ""}`;
     return `${mods}${seq}${text}${Color.RESET}`;
   }
-  toRgbaArray():[number,number,number,number]{
+  rgbaArray():[number,number,number,number]{
     return [this.r||0,this.g||0,this.b||0,this.a||1]
   }
-  toHslaArray():[number,number,number,number]{
-    const {h,s,l} = this.#rgbToHsl(this.r,this.g,this.a)
+  hslaArray():[number,number,number,number]{
+    const {h,s,l} = this.#rgbToHsl(this.r,this.g,this.b)
     return [h||0,s||0,l||0,this.a||1]
   }
-  toHslaObj(){
-    return {a:this.a,...this.#rgbToHsl(this.r,this.g,this.a)}
+  hslaObj(){
+    return {a:this.a,...this.#rgbToHsl(this.r,this.g,this.b)}
   }
-  toRgbaObj(){
+  rgbaObj(){
      const {r,g,b,a}=this;
      return {r,g,b,a}
+  }
+  unitRgbaObj(){
+    const {r,g,b,a}=this;
+    return {r:r/255,g:g/255,b:b/255,a}
+  }
+  unitRgbaArray():[number,number,number,number] {
+    const {r,g,b,a} = this;
+    return [r/255,g/255,b/255,a]
   }
   #clamp(value: number): number {
     return Math.max(0, Math.min(255, value));
@@ -208,55 +300,259 @@ export class Color {
   #parseString(str: string) {
     str = str.trim().toLowerCase();
 
+    if (str === "transparent") {
+      this.r = 0;
+      this.g = 0;
+      this.b = 0;
+      this.a = 0;
+      return;
+    }
+
     if (NAMED_COLORS[str]) {
       str = NAMED_COLORS[str];
     }
 
     if (str.startsWith("#")) {
-      const hex = str.slice(1);
-      if (hex.length === 3) {
-        this.r = parseInt(hex[0] + hex[0], 16);
-        this.g = parseInt(hex[1] + hex[1], 16);
-        this.b = parseInt(hex[2] + hex[2], 16);
-      } else if (hex.length === 6) {
-        this.r = parseInt(hex.slice(0, 2), 16);
-        this.g = parseInt(hex.slice(2, 4), 16);
-        this.b = parseInt(hex.slice(4, 6), 16);
-      } else {
-        colorWarner.warn({
-          message: formatColorMessage(
-            "Color.parseString",
-            "Invalid hex color string.",
-            "Pass a valid 3-digit or 6-digit hex string.",
-            "Using black as fallback.",
-          ),
-        });
-      }
-    } else if (str.startsWith("rgb")) {
-      const vals = str.match(/[\d.]+/g)?.map(Number);
-      if (vals && vals.length >= 3) {
-        [this.r, this.g, this.b] = vals;
-        this.a = vals[3] ?? 1;
-      }
-    } else if (str.startsWith("hsl")) {
-      const vals = str.match(/[\d.]+/g)?.map(Number);
-      if (vals && vals.length >= 3) {
-        const { r, g, b } = this.#hslToRgb(vals[0], vals[1], vals[2]);
-        this.r = r;
-        this.g = g;
-        this.b = b;
-        this.a = vals[3] ?? 1;
-      }
-    } else {
-      colorWarner.warn({
-        message: formatColorMessage(
-          "Color.parseString",
-          `Unknown color string "${str}".`,
-          "The value must be a valid color string.",
-          "Using black as fallback.",
-        ),
-      });
+      return this.#parseHex(str);
     }
+
+    if (str.startsWith("rgb")) {
+      return this.#parseRgbCss(str);
+    }
+
+    if (str.startsWith("hsl")) {
+      return this.#parseHslCss(str);
+    }
+
+    this.#warnInvalidString(str);
+  }
+
+  #parseHex(str: string) {
+    const hex = str.slice(1);
+    if (hex.length === 3 || hex.length === 4) {
+      this.r = parseInt(hex[0] + hex[0], 16);
+      this.g = parseInt(hex[1] + hex[1], 16);
+      this.b = parseInt(hex[2] + hex[2], 16);
+      if (hex.length === 4) {
+        this.a = parseInt(hex[3] + hex[3], 16) / 255;
+      }
+      return;
+    }
+
+    if (hex.length === 6 || hex.length === 8) {
+      this.r = parseInt(hex.slice(0, 2), 16);
+      this.g = parseInt(hex.slice(2, 4), 16);
+      this.b = parseInt(hex.slice(4, 6), 16);
+      if (hex.length === 8) {
+        this.a = parseInt(hex.slice(6, 8), 16) / 255;
+      }
+      return;
+    }
+
+    this.#warnInvalidString(str, "Pass a valid 3-, 4-, 6- or 8-digit hex string.");
+  }
+
+  #parseArray(input: number[], format: ColorFormat) {
+    const [a, b, c, d] = input;
+
+    if (format === "hslaarray") {
+      const h = a ?? 0;
+      const s = b ?? 0;
+      const l = c ?? 0;
+      const { r, g, b: bi } = this.#hslToRgb(h, s, l);
+      this.r = r;
+      this.g = g;
+      this.b = bi;
+      this.a = d ?? 1;
+      return;
+    }
+
+    if (format === "unitrgba") {
+      this.r = this.#unitTo255(a ?? 0);
+      this.g = this.#unitTo255(b ?? 0);
+      this.b = this.#unitTo255(c ?? 0);
+      this.a = d ?? 1;
+      return;
+    }
+
+    if (format === "rgbaarray") {
+      this.r = this.#clamp(a ?? 0);
+      this.g = this.#clamp(b ?? 0);
+      this.b = this.#clamp(c ?? 0);
+      this.a = d ?? 1;
+      return;
+    }
+
+    if (format === "hsl") {
+      const h = a ?? 0;
+      const s = b ?? 0;
+      const l = c ?? 0;
+      const { r, g, b: bi } = this.#hslToRgb(h, s, l);
+      this.r = r;
+      this.g = g;
+      this.b = bi;
+      this.a = 1;
+      return;
+    }
+
+    if (format === "hsla") {
+      const h = a ?? 0;
+      const s = b ?? 0;
+      const l = c ?? 0;
+      const { r, g, b: bi } = this.#hslToRgb(h, s, l);
+      this.r = r;
+      this.g = g;
+      this.b = bi;
+      this.a = d ?? 1;
+      return;
+    }
+
+    // Treat as RGB/RGBA by default
+    const r = a ?? 0;
+    const g = b ?? 0;
+    const bVal = c ?? 0;
+    const alpha = d ?? 1;
+
+    // If format is explicitly RGB, ignore potential fourth value
+    if (format === "rgb") {
+      this.r = this.#clamp(r);
+      this.g = this.#clamp(g);
+      this.b = this.#clamp(bVal);
+      this.a = 1;
+      return;
+    }
+
+    // RGBA (or auto/detected)
+    this.r = this.#clamp(r);
+    this.g = this.#clamp(g);
+    this.b = this.#clamp(bVal);
+    this.a = alpha;
+  }
+
+  #parseRgbCss(str: string) {
+    const body = str.slice(str.indexOf("(") + 1, str.lastIndexOf(")"));
+    const [colorPart, alphaPart] = body.split("/").map((p) => p.trim());
+    const parts = colorPart.split(/[\s,]+/).filter(Boolean);
+
+    if (parts.length < 3) {
+      return this.#warnInvalidString(str);
+    }
+
+    const r = this.#parseRgbComponent(parts[0]);
+    const g = this.#parseRgbComponent(parts[1]);
+    const b = this.#parseRgbComponent(parts[2]);
+
+    if (r === null || g === null || b === null) {
+      return this.#warnInvalidString(str);
+    }
+
+    this.r = r;
+    this.g = g;
+    this.b = b;
+
+    const alphaSource = alphaPart ?? parts[3];
+    if (alphaSource !== undefined) {
+      const a = this.#parseAlpha(alphaSource);
+      if (a !== null) this.a = a;
+    }
+  }
+
+  #parseHslCss(str: string) {
+    const body = str.slice(str.indexOf("(") + 1, str.lastIndexOf(")"));
+    const [colorPart, alphaPart] = body.split("/").map((p) => p.trim());
+    const parts = colorPart.split(/[\s,]+/).filter(Boolean);
+
+    if (parts.length < 3) {
+      return this.#warnInvalidString(str);
+    }
+
+    const h = this.#parseHue(parts[0]);
+    const s = this.#parsePercentage(parts[1]);
+    const l = this.#parsePercentage(parts[2]);
+
+    if (h === null || s === null || l === null) {
+      return this.#warnInvalidString(str);
+    }
+
+    const { r, g, b } = this.#hslToRgb(h, s, l);
+    this.r = r;
+    this.g = g;
+    this.b = b;
+
+    const alphaSource = alphaPart ?? parts[3];
+    if (alphaSource !== undefined) {
+      const a = this.#parseAlpha(alphaSource);
+      if (a !== null) this.a = a;
+    }
+  }
+
+  #unitTo255(value: number): number {
+    // Accept both 0..1 unit values and 0..255 values.
+    if (value >= 0 && value <= 1) {
+      return this.#clamp(Math.round(value * 255));
+    }
+    return this.#clamp(Math.round(value));
+  }
+
+  #parseRgbComponent(component: string): number | null {
+    component = component.trim();
+    if (component.endsWith("%")) {
+      const pct = parseFloat(component.slice(0, -1));
+      if (Number.isNaN(pct)) return null;
+      return this.#clamp(Math.round((pct / 100) * 255));
+    }
+
+    const value = parseFloat(component);
+    if (Number.isNaN(value)) return null;
+
+    // Support CSS unit rgb values in [0,1], where 1 -> 255
+    if (value >= 0 && value <= 1) {
+      return this.#clamp(Math.round(value * 255));
+    }
+
+    return this.#clamp(Math.round(value));
+  }
+
+  #parseAlpha(value: string): number | null {
+    value = value.trim();
+    if (value.endsWith("%")) {
+      const pct = parseFloat(value.slice(0, -1));
+      if (Number.isNaN(pct)) return null;
+      return Math.max(0, Math.min(1, pct / 100));
+    }
+    const num = parseFloat(value);
+    if (Number.isNaN(num)) return null;
+    return Math.max(0, Math.min(1, num));
+  }
+
+  #parseHue(value: string): number | null {
+    value = value.trim().replace(/deg$/, "");
+    const num = parseFloat(value);
+    if (Number.isNaN(num)) return null;
+    // Normalize to [0, 360)
+    return ((num % 360) + 360) % 360;
+  }
+
+  #parsePercentage(value: string): number | null {
+    value = value.trim();
+    if (value.endsWith("%")) {
+      const num = parseFloat(value.slice(0, -1));
+      if (Number.isNaN(num)) return null;
+      return Math.max(0, Math.min(100, num));
+    }
+    const num = parseFloat(value);
+    if (Number.isNaN(num)) return null;
+    return Math.max(0, Math.min(100, num));
+  }
+
+  #warnInvalidString(str: string, hint?: string) {
+    const message = formatColorMessage(
+      "Color.parseString",
+      `Unknown color string "${str}".`,
+      "The value must be a valid color string.",
+      hint ?? "Using black as fallback.",
+    );
+    colorWarner.warn({ message });
   }
 
   #hslToRgb(h: number, s: number, l: number) {
